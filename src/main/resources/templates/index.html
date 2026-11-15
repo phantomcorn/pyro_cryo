@@ -1,8 +1,14 @@
 <!DOCTYPE html>
-<html>
-    <html xmlns:th="http://www.thymeleaf.org" >
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
     <head>
-        <title>Thymeleaf</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="color-scheme" content="light dark">
+        <title>Checkout · Pyro Cryo</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono&display=swap">
+        <link rel="stylesheet" th:href="@{/css/checkout.css}" href="checkout.css">
         <script th:src="@{/js/wallet.js}" defer></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.17.0/ethers.umd.min.js"></script>
         <script type="module" th:inline="javascript">
@@ -77,46 +83,68 @@
             }
             document.getElementById("pay-button").addEventListener("click", pay);
         </script>
-
     </head>
     <body>
-        <!-- Trigger Button -->
-        <button id="connectButton" onclick="connectWallet()">Connect Wallet</button>
+        <main class="checkout">
+            <header class="brand">
+                <span class="brand-mark" aria-hidden="true"></span>
+                pyro_cryo
+                <span class="secure">Secure checkout</span>
+            </header>
 
-        <!-- Status Display -->
-        <p id="walletAddress">Not connected</p>
+            <div class="card">
+                <section>
+                    <h1 class="amount-label">Amount due</h1>
+                    <p class="amount"><span th:text="${message.amount}">-1</span></p>
+                </section>
 
-        <span>
-            Invoice ID:
-            <div th:text="${message.invoiceId}"> -1</div>
-        </span>
-        <span>
-            Hash ID:
-            <div th:text="${message.hashId}"> -1</div>
-        </span>
-        <span>
-            Merchant Address:
-            <div th:text="${message.merchantAddress}"> 0x0000000000000000000000000000000000000000</div>
-        </span>
-        <span>
-            Token Address:
-            <div th:text="${message.tokenAddress}"> 0x0000000000000000000000000000000000000000</div>
-        </span>
-        <span>
-            Amount:
-            <div th:text="${message.amount}">-1</div>
-        </span>
-        <span>
-            Voucher:
-            <div th:text="${voucher}"> 0x0000000000000000000000000000000000000000</div>
-        </span>
-        <span>
-            Expires at:
-            <div th:text="${deadline}"> 0x0000000000000000000000000000000000000000</div>
-        </span>
-        <button id="pay-button">Pay</button>
+                <section class="wallet" aria-label="Wallet">
+                    <button id="connectButton" onclick="connectWallet()">Connect Wallet</button>
+                    <p id="walletAddress">Not connected</p>
+                </section>
 
-        <div id="status">NOT PAID</div>
+                <section>
+                    <dl class="details">
+                        <div>
+                            <dt>Merchant</dt>
+                            <dd class="mono" th:text="${message.merchantAddress}">0x0000000000000000000000000000000000000000</dd>
+                        </div>
+                        <div>
+                            <dt>Token</dt>
+                            <dd class="mono" th:text="${message.tokenAddress}">0x0000000000000000000000000000000000000000</dd>
+                        </div>
+                        <div>
+                            <dt>Expires at</dt>
+                            <dd class="mono" th:text="${deadline}">0</dd>
+                        </div>
+                    </dl>
+                </section>
 
+                <section>
+                    <details class="tech">
+                        <summary>Technical details</summary>
+                        <dl class="details">
+                            <div>
+                                <dt>Invoice ID</dt>
+                                <dd class="mono" th:text="${message.invoiceId}">-1</dd>
+                            </div>
+                            <div>
+                                <dt>Hash ID</dt>
+                                <dd class="mono" th:text="${message.hashId}">-1</dd>
+                            </div>
+                            <div>
+                                <dt>Voucher</dt>
+                                <dd class="mono" th:text="${voucher}">0x0000000000000000000000000000000000000000</dd>
+                            </div>
+                        </dl>
+                    </details>
+                </section>
+
+                <section class="pay-row">
+                    <button id="pay-button">Pay</button>
+                    <div id="status" role="status">NOT PAID</div>
+                </section>
+            </div>
+        </main>
     </body>
 </html>

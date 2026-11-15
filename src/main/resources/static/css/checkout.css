@@ -1,0 +1,108 @@
+/* pyro_cryo hosted checkout: soft fintech card. Place at src/main/resources/static/css/checkout.css */
+:root {
+  color-scheme: light dark;
+
+  --page: light-dark(#e6edf5, #131a20);
+  --card: light-dark(#ffffff, #20272a);
+  --card-edge: light-dark(#cfdae6, #34414d);
+  --ink: light-dark(#26352e, #eef0ee);
+  --muted: light-dark(#5b665f, #aab3ae);
+  --field: light-dark(#f1f5f9, #28333d);
+  --brand: light-dark(#1d4ed8, #8fb4ff);
+  --on-brand: light-dark(#ffffff, #0b1b3d);
+  --brand-hover: light-dark(#1e40af, #b3ccff);
+  --ok: light-dark(#1f6b3a, #7fd49a);
+  --ok-bg: light-dark(#e3f3e8, #1d3326);
+  --warn-bg: light-dark(#e8eef5, #2a3641);
+  --shadow: light-dark(0 1px 2px rgb(38 53 46 / .08), 0 1px 2px rgb(0 0 0 / .4));
+  --shadow-lg: light-dark(0 12px 32px rgb(29 78 216 / .14), 0 12px 32px rgb(0 0 0 / .45));
+
+  --font: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 24px 16px;
+  font: 16px/1.5 var(--font);
+  color: var(--ink);
+  background: radial-gradient(120% 80% at 50% 0%, light-dark(#f3f7fb, #1b252e), var(--page));
+}
+
+.checkout { width: min(100%, 440px); }
+
+.brand { display: flex; align-items: center; gap: 8px; margin: 0 4px 14px; font-weight: 650; letter-spacing: -.01em; }
+.brand-mark { width: 22px; height: 22px; border-radius: 7px; background: var(--brand); }
+.secure { margin-left: auto; font-size: 13px; font-weight: 500; color: var(--muted); }
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--card-edge);
+  border-radius: 20px;
+  box-shadow: var(--shadow), var(--shadow-lg);
+  overflow: hidden;
+}
+.card > section { padding: 20px 24px; }
+.card > section + section { border-top: 1px solid var(--card-edge); }
+
+/* Amount hero */
+.amount-label { margin: 0; font-size: 13px; color: var(--muted); }
+.amount { margin: 2px 0 0; font-size: clamp(2rem, 9vw, 2.75rem); font-weight: 700; letter-spacing: -.03em; line-height: 1.1; overflow-wrap: anywhere; }
+.amount small { font-size: .45em; font-weight: 600; color: var(--muted); letter-spacing: 0; }
+
+/* Wallet row */
+.wallet { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+#walletAddress { flex: 1; min-width: 0; margin: 0; padding: 10px 12px; border-radius: 10px; background: var(--field); font: 13px var(--mono); color: var(--muted); overflow-wrap: anywhere; }
+
+button {
+  min-height: 44px; padding: 0 18px;
+  font: 600 15px var(--font);
+  color: var(--ink); background: var(--field);
+  border: 1px solid var(--card-edge); border-radius: 12px;
+  cursor: pointer;
+  transition: background-color .15s, transform .1s;
+}
+button:hover:not(:disabled) { background: light-dark(#e3eaf3, #34424e); }
+button:active:not(:disabled) { transform: translateY(1px); }
+button:focus-visible { outline: 3px solid var(--brand); outline-offset: 2px; }
+button:disabled { cursor: not-allowed; opacity: .6; }
+
+#pay-button {
+  width: 100%; min-height: 52px; font-size: 16px;
+  color: var(--on-brand); background: var(--brand); border-color: transparent;
+}
+#pay-button:hover:not(:disabled) { background: var(--brand-hover); }
+
+/* Details list */
+.details { margin: 0; display: grid; gap: 12px; }
+.details div { display: grid; gap: 2px; }
+.details dt { font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+.details dd { margin: 0; }
+.mono { font: 13px/1.45 var(--mono); overflow-wrap: anywhere; }
+
+details.tech summary { cursor: pointer; font-size: 14px; font-weight: 600; color: var(--muted); padding: 4px 0; }
+details.tech summary:focus-visible { outline: 3px solid var(--brand); outline-offset: 2px; border-radius: 6px; }
+details.tech .details { margin-top: 12px; }
+
+/* Status pill: reads the pay button, so the existing script needs no change. */
+#status {
+  display: inline-flex; align-items: center; gap: 6px; margin: 14px 0 0;
+  padding: 4px 12px; border-radius: 999px;
+  font-size: 13px; font-weight: 600; background: var(--warn-bg); color: var(--muted);
+}
+#status::before { content: '○'; }
+.card:has(#pay-button:disabled) #status { background: var(--ok-bg); color: var(--ok); }
+.card:has(#pay-button:disabled) #status::before { content: '✓'; }
+.card:has(#pay-button:disabled) #pay-button { background: var(--ok-bg); color: var(--ok); opacity: 1; }
+.pay-row { display: flex; flex-direction: column; align-items: flex-start; }
+
+@media (forced-colors: active) {
+  .card, button, #walletAddress, #status { border: 1px solid CanvasText; }
+  #pay-button { background: ButtonFace; color: ButtonText; }
+}
+@media (prefers-reduced-motion: reduce) { button { transition: none; } }

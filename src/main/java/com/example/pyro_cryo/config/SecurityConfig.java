@@ -50,7 +50,7 @@ public class SecurityConfig {
                                 .requestMatchers("/api/key/**").hasAuthority(JwtFilter.GRANTED_ROLE.getAuthority())
                                 .requestMatchers("/api/checkout/**").hasAnyAuthority(JwtFilter.GRANTED_ROLE.getAuthority(), ApiKeyFilter.GRANTED_ROLE.getAuthority())
                                 .requestMatchers("/checkout/**", "/api/watcher/health","/api/merchant/**").permitAll()
-                                .requestMatchers("/abi/**").permitAll()
+                                .requestMatchers("/abi/**", "/css/**", "/js/**").permitAll()
                 ).sessionManagement(
                         session ->
                                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
