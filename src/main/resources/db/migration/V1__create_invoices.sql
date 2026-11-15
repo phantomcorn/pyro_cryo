@@ -6,7 +6,8 @@ CREATE TABLE merchant(
      address VARCHAR(42) NOT NULL,
      name VARCHAR(256) NOT NULL,
      uri VARCHAR(256) NOT NULL,
-     secret_key VARCHAR(44) NOT NULL
+     secret_key VARCHAR(44) NOT NULL,
+     success_url VARCHAR(256) NOT NULL
 );
 
 CREATE TABLE invoices(
