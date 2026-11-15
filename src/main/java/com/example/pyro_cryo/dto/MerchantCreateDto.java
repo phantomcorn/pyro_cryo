@@ -12,4 +12,5 @@ public class MerchantCreateDto {
     String name;
     String merchantAddress;
     String uri;
+    String successUrl;
 }

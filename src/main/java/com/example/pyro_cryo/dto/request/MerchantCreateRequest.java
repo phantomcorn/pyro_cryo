@@ -12,5 +12,6 @@ public class MerchantCreateRequest {
     String name;
     String merchantAddress;
     String uri;
+    String successUrl;
 
 }

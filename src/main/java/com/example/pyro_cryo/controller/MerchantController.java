@@ -30,6 +30,7 @@ public class MerchantController {
                 .name(merchantCreateRequest.getName())
                 .merchantAddress(merchantCreateRequest.getMerchantAddress())
                 .uri(merchantCreateRequest.getUri())
+                .successUrl(merchantCreateRequest.getSuccessUrl())
                 .build();
 
         MerchantDto merchantDto = merchantService.create(merchantCreateDto);

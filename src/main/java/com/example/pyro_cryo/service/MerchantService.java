@@ -34,7 +34,7 @@ public class MerchantService implements UserDetailsService {
     public MerchantDto create(MerchantCreateDto merchantCreateDto) {
 
         if (merchantRepository.existsById(merchantCreateDto.getMerchantAddress())) {
-            return new MerchantDto(null, null, null, null, null, null);
+            return new MerchantDto(null, null, null, null, null, null, null);
         }
 
         String key = Encoders.BASE64.encode(Jwts.SIG.HS256.key().build().getEncoded());
@@ -45,7 +45,8 @@ public class MerchantService implements UserDetailsService {
                 merchantCreateDto.getMerchantAddress(),
                 merchantCreateDto.getName(),
                 merchantCreateDto.getUri(),
-                key
+                key,
+                merchantCreateDto.getSuccessUrl()
         );
 
         return merchantRepository.save(merchant).toDto();

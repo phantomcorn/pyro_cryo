@@ -39,8 +39,11 @@ public class Merchant implements UserDetails {
     @Column(name = "secret_key")
     private String secretKey; //signing webhooks
 
+    @Column(name = "success_url")
+    private String successUrl;
+
     public MerchantDto toDto() {
-        return new MerchantDto(username, password, address, name, uri, secretKey);
+        return new MerchantDto(username, password, address, name, uri, secretKey, successUrl);
     }
 
     @Override

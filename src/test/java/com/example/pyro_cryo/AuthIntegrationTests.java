@@ -101,7 +101,8 @@ public class AuthIntegrationTests {
                 password,
                 "Merchant A",
                 "0x" + repeat('2', 40),
-                "https://www.google.com"
+                "https://www.google.com",
+                "www.google.com/confirm/{invoiceId}"
         );
 
         mockMvc.perform(

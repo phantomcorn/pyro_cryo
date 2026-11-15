@@ -63,7 +63,8 @@ public class EndToEndTests {
                 "11111",
                 "Google",
                 "0x207F6986e453D5AEcaDa283E252fb78946E38A37",
-                "www.google.com"
+                "www.google.com",
+                "www.google.com/confirm/{invoiceId}"
         );
         System.out.println(json.writeValueAsString(request));
         mockMvc.perform(
@@ -88,7 +89,8 @@ public class EndToEndTests {
                 "11111",
                 "Google",
                 "0x1111111111111111111111111111111111111111",
-                "www.google.com"
+                "www.google.com",
+                "www.google.com/confirm/{invoiceId}"
         );
 
         mockMvc.perform(

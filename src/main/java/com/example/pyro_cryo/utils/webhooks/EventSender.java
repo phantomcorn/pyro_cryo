@@ -27,6 +27,9 @@ public class EventSender {
         JsonObject body = new JsonObject();
         body.put("invoiceId", invoiceId);
         body.put("status", status.name());
+        if (status.equals(InvoiceEventStatus.PAID)) {
+            body.put("success_url", merchantDto.successUrl().replace("{invoiceId}", invoiceId));
+        }
 
         Map<String, Object> jsonPayload = body.getMap();
         String signature = HMacUtil.sign(merchantDto.secretKey(), jsonPayload);
