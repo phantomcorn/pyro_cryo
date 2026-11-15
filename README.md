@@ -15,12 +15,15 @@ Crypto payment gateway using Spring Boot API and Web3j watcher
 - [x] KMS for signed webhooks
 - [x] Inbox fetches message, creates, signs and sends webhook to merchant endpoint up- [x] Authenticated user to can access api and invoice endpoint
 - [x] api key access cannot generate more api key
+- [ ] Expires unpaid invoice sends `order.expired` webhook to merchant
 - [ ] Display merchant address as QR code
 - [ ] Monitor token Transfer event incase buyer transfer directly to merchant address using QR code
 - [ ] Detect Transfer event from token contract on the blockchain and update invoice status
 ### Edge cases
 - [ ] Buyer clicks pay 1 second before expiry, contract `block.timestamp` shows expired. Transaction reverts + gas fee paid
   - [ ] Add grace period in contract
+    - [ ] `order.expired` webhook but function still accepts payment within grace period
+      - [ ] Two clocks: shorter expiration for user view, longer for merchant and server. Delay `order.expired` webhook and check invoice status again before sending.
   - [ ] Disable click button 1 minute before actual expiry
 - [ ] Watcher crashes halfway through processing a block
   - [ ] Checkpoint every processed block
