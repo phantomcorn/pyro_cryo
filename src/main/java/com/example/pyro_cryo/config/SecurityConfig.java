@@ -38,6 +38,12 @@ public class SecurityConfig {
     @Bean
     SecurityFilterChain newFilterChain(HttpSecurity http) {
         return http
+                .headers(h -> h
+                        .frameOptions(f -> f.disable())
+                        .contentSecurityPolicy(c -> c.policyDirectives(
+                                "frame-ancestors 'self' http://localhost:5173"
+                        ))
+                )
                 .csrf((csrf) -> csrf.disable())
                 .authorizeHttpRequests((auth) ->
                         auth
