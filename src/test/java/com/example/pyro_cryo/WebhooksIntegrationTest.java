@@ -18,9 +18,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.retry.annotation.EnableRetry;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.transaction.annotation.Transactional;
 import org.web3j.crypto.Hash;
 
 import java.net.http.HttpClient;
@@ -36,6 +38,7 @@ import static org.mockito.ArgumentMatchers.eq;
 @SpringBootTest @ActiveProfiles("test")
 @ExtendWith(MockitoExtension.class)
 @EnableRetry
+@Transactional
 public class WebhooksIntegrationTest {
 
     @Autowired
@@ -104,6 +107,7 @@ public class WebhooksIntegrationTest {
     }
 
     @Test
+    @DirtiesContext
     public void failedWebhookWillRetry3Times() throws ExecutionException, InterruptedException {
         EventMessage message = EventMessage
                 .builder()
@@ -127,6 +131,7 @@ public class WebhooksIntegrationTest {
     }
 
     @Test
+    @DirtiesContext
     public void afterRetryingFailedWebhookTriggerFallback() {
         EventMessage message = EventMessage
                 .builder()
