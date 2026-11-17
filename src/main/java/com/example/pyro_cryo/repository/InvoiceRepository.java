@@ -47,7 +47,7 @@ public interface InvoiceRepository extends JpaRepository<Invoice, String> {
     @Query("""
         SELECT i
         FROM Invoice i
-        WHERE i.signature_expires_at < :now
+        WHERE i.signatureExpiresAt < :now
         AND i.status = :from
         ORDER BY i.hashId
         """)
