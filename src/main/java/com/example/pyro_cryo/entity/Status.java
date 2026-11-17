@@ -4,5 +4,6 @@ public enum Status {
     NOT_PAID,
     DETECTED,
     REORG,
-    CONFIRMED
+    CONFIRMED,
+    EXPIRED
 }

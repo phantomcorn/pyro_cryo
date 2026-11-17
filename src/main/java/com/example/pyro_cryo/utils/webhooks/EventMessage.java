@@ -21,6 +21,7 @@ public class EventMessage {
             case NOT_PAID, DETECTED -> res = InvoiceEventStatus.PENDING;
             case REORG -> res = InvoiceEventStatus.REVERTED;
             case CONFIRMED -> res = InvoiceEventStatus.PAID;
+            case EXPIRED -> res = InvoiceEventStatus.EXPIRED;
         }
         return res;
     }
