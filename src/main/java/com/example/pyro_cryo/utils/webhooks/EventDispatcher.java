@@ -51,7 +51,7 @@ public class EventDispatcher { //subscriber to EventInbox
                     return null;
                 },
                 ctx -> { //fallback
-                    sender.failedWebhooksFallback((RetryableWebhookException) ctx.getLastThrowable(),message);
+                    sender.failedWebhooksFallback(ctx.getLastThrowable(),message);
                     return null;
                 }
         );

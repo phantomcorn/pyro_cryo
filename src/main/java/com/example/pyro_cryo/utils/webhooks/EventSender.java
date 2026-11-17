@@ -63,7 +63,7 @@ public class EventSender {
                 .build();
     }
 
-    public void failedWebhooksFallback(RetryableWebhookException e, EventMessage message) {
+    public void failedWebhooksFallback(Throwable e, EventMessage message) {
         System.out.println("Failed Webhooks " + e.toString() + " " + message);
     }
 }
