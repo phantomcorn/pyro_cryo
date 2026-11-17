@@ -13,7 +13,9 @@ Crypto payment gateway using Spring Boot API and Web3j watcher
 - [x] Any invoice status update sends message to inbox
 - [x] Endpoint to register merchant
 - [x] KMS for signed webhooks
-- [x] Inbox fetches message, creates, signs and sends webhook to merchant endpoint up- [x] Authenticated user to can access api and invoice endpoint
+- [x] Inbox fetches message, creates, signs and sends webhook to merchant endpoint up
+- [x] Any webhook that doesn't get a 200 OK status code resends
+- [x] Authenticated user to can access api and invoice endpoint
 - [x] api key access cannot generate more api key
 - [ ] Expires unpaid invoice sends `order.expired` webhook to merchant
 - [ ] Display merchant address as QR code
@@ -28,6 +30,7 @@ Crypto payment gateway using Spring Boot API and Web3j watcher
 - [ ] Watcher crashes halfway through processing a block
   - [ ] Checkpoint every processed block
   - [ ] Resume from checkpoint
+- [ ] Merchant server crash beyond webhook retries.
 
 ## Features
 - `PaymentRail.sol` contract acts as a non-custodial intermediary between buyer and seller leveraging DLT.
