@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -40,6 +41,17 @@ public interface InvoiceRepository extends JpaRepository<Invoice, String> {
         ORDER BY i.hashId
         """)
     List<Invoice> lockByStatus(List<String> hashIds, Status from);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("""
+        SELECT i
+        FROM Invoice i
+        WHERE i.signature_expires_at < :now
+        AND i.status = :from
+        ORDER BY i.hashId
+        """)
+    List<Invoice> lockByExpirationAndNotPaid(Instant now, Status from);
 }
 
 

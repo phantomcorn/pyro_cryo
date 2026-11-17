@@ -12,6 +12,7 @@ import com.example.pyro_cryo.utils.webhooks.EventInbox;
 import com.example.pyro_cryo.utils.webhooks.EventMessage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.web3j.crypto.Credentials;
@@ -19,6 +20,8 @@ import org.web3j.crypto.Hash;
 import org.web3j.protocol.Web3j;
 
 import java.io.IOException;
+import java.time.Clock;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -37,6 +40,9 @@ public class InvoiceService {
 
     @Autowired
     EventInbox inbox;
+
+    @Autowired
+    Clock clock;
 
     @Value("${checkout-base-url}")
     private String CHECKOUT_BASE_URL;
@@ -77,6 +83,24 @@ public class InvoiceService {
         }
 
         return Optional.of(found.get().toDto());
+    }
+
+    @Scheduled(fixedDelay = 30000)
+    @Transactional
+    public boolean expireInvoice() {
+        List<Invoice> lockedInvoices = invoiceRepository.lockByExpirationAndNotPaid(Instant.now(clock), Status.NOT_PAID);
+        if (lockedInvoices.isEmpty()) {
+            return false;
+        }
+
+        List<String> lockedIds = lockedInvoices.stream().map(Invoice::getHashId).toList();
+        int changes = invoiceRepository.transition(lockedIds, Status.NOT_PAID, Status.EXPIRED);
+
+        assert(changes == lockedInvoices.size());
+        lockedInvoices.forEach(invoice ->
+                inbox.getPublisher().onNext(message(invoice, Status.EXPIRED))
+        );
+        return true;
     }
 
     @Transactional
