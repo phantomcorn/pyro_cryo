@@ -83,5 +83,5 @@ INSERT INTO merchant (
     '0x1111111111111111111111111111111111111111',
     'Merchant A',
     'https://www.google.com',
-    'key1'
+    '9XSRJ+kNQNsRb48eOwrHfd+gWp3zZxKT7/3RNwup3EI='
 );
