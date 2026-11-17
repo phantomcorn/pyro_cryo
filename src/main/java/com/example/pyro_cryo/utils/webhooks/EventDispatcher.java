@@ -51,7 +51,7 @@ public class EventDispatcher { //subscriber to EventInbox
                     return null;
                 },
                 ctx -> { //fallback
-                    failedWebhooksFallback((RetryableWebhookException) ctx.getLastThrowable(),message);
+                    sender.failedWebhooksFallback((RetryableWebhookException) ctx.getLastThrowable(),message);
                     return null;
                 }
         );
@@ -63,10 +63,6 @@ public class EventDispatcher { //subscriber to EventInbox
 
     public void dispose() {
         disposable.dispose();
-    }
-
-    public void failedWebhooksFallback(RetryableWebhookException e, EventMessage message) {
-        System.out.println("Failed Webhooks " + e.toString() + " " + message);
     }
 
 }

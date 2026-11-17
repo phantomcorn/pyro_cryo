@@ -7,22 +7,35 @@ import com.example.pyro_cryo.utils.webhooks.EventDispatcher;
 import com.example.pyro_cryo.utils.webhooks.EventInbox;
 import com.example.pyro_cryo.utils.webhooks.EventMessage;
 import com.example.pyro_cryo.utils.webhooks.EventSender;
+import com.example.pyro_cryo.utils.webhooks.exceptions.RetryableWebhookException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.retry.annotation.EnableRetry;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.web3j.crypto.Hash;
+
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 
 @SpringBootTest @ActiveProfiles("test")
 @ExtendWith(MockitoExtension.class)
+@EnableRetry
 public class WebhooksIntegrationTest {
 
     @Autowired
@@ -33,6 +46,12 @@ public class WebhooksIntegrationTest {
 
     @MockitoSpyBean
     EventSender sender;
+
+    @Mock
+    private HttpClient httpClient;
+
+    @Mock
+    private HttpResponse<String> httpResponse;
 
     EventDispatcher dispatcher;
     String merchantAddress = "0x1111111111111111111111111111111111111111";
@@ -65,7 +84,7 @@ public class WebhooksIntegrationTest {
     }
 
     @Test
-    public void dispatcherHandlerSendsRequest() {
+    public void dispatcherHandlerSendsRequest() throws ExecutionException, InterruptedException {
         EventMessage message = EventMessage
                 .builder()
                 .username(merchantUsername)
@@ -82,5 +101,46 @@ public class WebhooksIntegrationTest {
                 EventMessage.statusToInvoiceEventStatus(message.getStatus()),
                 merchantDto
         );
+    }
+
+    @Test
+    public void failedWebhookWillRetry3Times() throws ExecutionException, InterruptedException {
+        EventMessage message = EventMessage
+                .builder()
+                .username(merchantUsername)
+                .merchantAddress(merchantAddress)
+                .invoiceId(Hash.sha3String(UUID.randomUUID().toString()))
+                .status(Status.DETECTED)
+                .build();
+
+        MerchantDto merchantDto = merchantService.findMerchantByUsername(merchantUsername).get();
+        ReflectionTestUtils.setField(sender, "httpClient", httpClient);
+
+        Mockito.when(httpResponse.statusCode()).thenReturn(429);
+        Mockito.when(httpClient.sendAsync(any(HttpRequest.class), any(HttpResponse.BodyHandler.class))).thenReturn(CompletableFuture.completedFuture(httpResponse));
+        inbox.getPublisher().onNext(message);
+        Mockito.verify(sender, Mockito.timeout(4000).times(3)).send(
+                message.getInvoiceId(),
+                EventMessage.statusToInvoiceEventStatus(message.getStatus()),
+                merchantDto
+        );
+    }
+
+    @Test
+    public void afterRetryingFailedWebhookTriggerFallback() {
+        EventMessage message = EventMessage
+                .builder()
+                .username(merchantUsername)
+                .merchantAddress(merchantAddress)
+                .invoiceId(Hash.sha3String(UUID.randomUUID().toString()))
+                .status(Status.DETECTED)
+                .build();
+
+        ReflectionTestUtils.setField(sender, "httpClient", httpClient);
+
+        Mockito.when(httpResponse.statusCode()).thenReturn(429);
+        Mockito.when(httpClient.sendAsync(any(HttpRequest.class), any(HttpResponse.BodyHandler.class))).thenReturn(CompletableFuture.completedFuture(httpResponse));
+        inbox.getPublisher().onNext(message);
+        Mockito.verify(sender).failedWebhooksFallback(any(RetryableWebhookException.class), eq(message));
     }
 }

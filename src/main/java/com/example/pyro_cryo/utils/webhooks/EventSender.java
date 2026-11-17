@@ -62,4 +62,8 @@ public class EventSender {
                 .POST(HttpRequest.BodyPublishers.ofString(body.toString()))
                 .build();
     }
+
+    public void failedWebhooksFallback(RetryableWebhookException e, EventMessage message) {
+        System.out.println("Failed Webhooks " + e.toString() + " " + message);
+    }
 }
