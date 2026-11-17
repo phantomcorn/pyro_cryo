@@ -18,7 +18,8 @@ public class EventMessage {
         InvoiceEventStatus res = null;
 
         switch (status) {
-            case NOT_PAID, DETECTED -> res = InvoiceEventStatus.PENDING;
+            case NOT_PAID -> res = InvoiceEventStatus.NOT_PAID;
+            case DETECTED ->  res = InvoiceEventStatus.PENDING;
             case REORG -> res = InvoiceEventStatus.REVERTED;
             case CONFIRMED -> res = InvoiceEventStatus.PAID;
             case EXPIRED -> res = InvoiceEventStatus.EXPIRED;
