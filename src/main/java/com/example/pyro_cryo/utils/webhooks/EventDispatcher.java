@@ -2,12 +2,22 @@ package com.example.pyro_cryo.utils.webhooks;
 
 import com.example.pyro_cryo.dto.MerchantDto;
 import com.example.pyro_cryo.service.MerchantService;
+import com.example.pyro_cryo.utils.webhooks.exceptions.RetryableWebhookException;
 import io.reactivex.disposables.Disposable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.EnableRetry;
+import org.springframework.retry.annotation.Recover;
+import org.springframework.retry.annotation.Retryable;
+import org.springframework.retry.support.RetryTemplate;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpStatusCodeException;
 
+import java.util.NoSuchElementException;
 import java.util.Optional;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
 
 @Component
 @Profile("!test")
@@ -21,18 +31,30 @@ public class EventDispatcher { //subscriber to EventInbox
 
     Disposable disposable;
 
+    RetryTemplate retryTemplate;
+
     public EventDispatcher(EventInbox inbox) {
         disposable = inbox.getPublisher().subscribe(this::handler, this::onError);
+        retryTemplate = RetryTemplate.builder()
+                .maxAttempts(3).retryOn(RetryableWebhookException.class)
+                .exponentialBackoff(1000,2, 5000, true)
+                .build();
     }
 
-    public void handler(EventMessage message) {
+    public void handler(EventMessage message) throws ExecutionException, InterruptedException {
         //find merchant uri
-        Optional<MerchantDto> found = merchantService.findMerchantByUsername(message.username);
-        if (found.isEmpty()) {
-            //TODO: raise error (this handler should only be called when event updates i.e must have merchant entity)
-        }
-        MerchantDto merchant = found.get();
-        sender.send(message.invoiceId, EventMessage.statusToInvoiceEventStatus(message.status), merchant);
+        MerchantDto merchantDto = merchantService.findMerchantByUsername(message.username).orElseThrow(NoSuchElementException::new);
+
+        retryTemplate.execute(
+                ctx -> { //try 3 times
+                    sender.send(message.invoiceId, EventMessage.statusToInvoiceEventStatus(message.status), merchantDto);
+                    return null;
+                },
+                ctx -> { //fallback
+                    failedWebhooksFallback((RetryableWebhookException) ctx.getLastThrowable(),message);
+                    return null;
+                }
+        );
     }
 
     public void onError(Throwable err) {
@@ -43,5 +65,8 @@ public class EventDispatcher { //subscriber to EventInbox
         disposable.dispose();
     }
 
+    public void failedWebhooksFallback(RetryableWebhookException e, EventMessage message) {
+        System.out.println("Failed Webhooks " + e.toString() + " " + message);
+    }
 
 }

@@ -2,6 +2,8 @@ package com.example.pyro_cryo.utils.webhooks;
 
 import com.example.pyro_cryo.dto.MerchantDto;
 import com.example.pyro_cryo.utils.HMacUtil;
+import com.example.pyro_cryo.utils.webhooks.exceptions.NonRetryableWebhookException;
+import com.example.pyro_cryo.utils.webhooks.exceptions.RetryableWebhookException;
 import io.vertx.core.json.JsonObject;
 import org.springframework.stereotype.Component;
 
@@ -10,17 +12,36 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 
 @Component
 public class EventSender {
 
+    private final HttpClient httpClient;
+
+    EventSender() {
+        this.httpClient = HttpClient.newBuilder().build();
+    }
 
     public void send(String invoiceId, InvoiceEventStatus invoiceEventStatus, MerchantDto merchantDto) {
-        HttpClient httpClient = HttpClient.newBuilder().build();
-
         HttpRequest request = webhookRequest(invoiceId, invoiceEventStatus, merchantDto);
-        CompletableFuture<HttpResponse<String>> response = httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString());
+        try {
+            httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+                    .thenApply(HttpResponse::statusCode)
+                    .thenAccept(code -> {
+                        if (code == 429 || code >= 500) {
+                            throw new RetryableWebhookException("Temporary webhook failure: " + code);
+                        } else if (code >= 400) {
+                            throw new NonRetryableWebhookException("Permanent webhook error: " + code);
+                        }
+                    })
+                    .join();
+        } catch (CompletionException e) {
+            if (e.getCause() instanceof RuntimeException runtimeEx) {
+                throw runtimeEx; // Rethrows RetryableWebhookException or NonRetryableWebhookException directly
+            }
+            throw e;
+        }
     }
 
     public HttpRequest webhookRequest(String invoiceId, InvoiceEventStatus status, MerchantDto merchantDto) {
