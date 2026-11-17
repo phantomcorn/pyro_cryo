@@ -1,6 +1,7 @@
 package com.example.pyro_cryo.utils.webhooks;
 
 import com.example.pyro_cryo.dto.MerchantDto;
+import com.example.pyro_cryo.entity.Status;
 import com.example.pyro_cryo.service.MerchantService;
 import com.example.pyro_cryo.utils.webhooks.exceptions.RetryableWebhookException;
 import io.reactivex.disposables.Disposable;
@@ -41,7 +42,11 @@ public class EventDispatcher { //subscriber to EventInbox
                 .build();
     }
 
-    public void handler(EventMessage message) throws ExecutionException, InterruptedException {
+    public void handler(EventMessage message) {
+        if (message.status.equals(Status.NOT_PAID)) {
+            return; //we don't need to send webhook for when invoice is created
+        }
+
         //find merchant uri
         MerchantDto merchantDto = merchantService.findMerchantByUsername(message.username).orElseThrow(NoSuchElementException::new);
 
