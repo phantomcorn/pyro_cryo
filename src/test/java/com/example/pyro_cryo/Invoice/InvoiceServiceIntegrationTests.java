@@ -6,15 +6,19 @@ import com.example.pyro_cryo.entity.Invoice;
 import com.example.pyro_cryo.entity.Status;
 import com.example.pyro_cryo.repository.InvoiceRepository;
 import com.example.pyro_cryo.service.InvoiceService;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.math.BigInteger;
+import java.time.Clock;
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 
@@ -29,6 +33,9 @@ public class InvoiceServiceIntegrationTests {
     @Autowired
     InvoiceService invoiceService;
 
+    @Autowired
+    Clock testClock;
+
     public void changeStatusTo(String hashId, Status status) {
         Optional<Invoice> found = invoiceRepository.findByHashId(hashId);
         if (found.isEmpty()) {
@@ -36,6 +43,11 @@ public class InvoiceServiceIntegrationTests {
         }
         Invoice invoice = found.get();
         invoice.setStatus(status);
+    }
+
+    @AfterEach
+    public void resetTime() {
+        ReflectionTestUtils.setField(invoiceService, "clock", testClock);
     }
 
     @Test
@@ -233,5 +245,21 @@ public class InvoiceServiceIntegrationTests {
             Invoice updatedInvoice = invoiceRepository.findByHashId(invoice.getHashId()).get();
             Assertions.assertEquals(invoice.getStatus(), updatedInvoice.getStatus());
         });
+    }
+
+    @Test
+    public void invoiceExpiredAfter5Minutes() throws IOException {
+        PayRequestDto payRequestDto = PayRequestDto.builder()
+                .amount(BigInteger.ONE)
+                .merchantAddress("00000000000000000000")
+                .tokenAddress("22222222222222222222")
+                .build();
+
+        InvoiceDto dto = invoiceService.createInvoice(payRequestDto).newInvoice();
+        Assertions.assertEquals(Status.NOT_PAID, invoiceService.getInvoiceDetails(dto.hashId()).get().status());
+
+        ReflectionTestUtils.setField(invoiceService, "clock", Clock.offset(testClock, Duration.ofSeconds(301)));
+        invoiceService.expireInvoice();
+        Assertions.assertEquals(Status.EXPIRED, invoiceService.getInvoiceDetails(dto.hashId()).get().status());
     }
 }

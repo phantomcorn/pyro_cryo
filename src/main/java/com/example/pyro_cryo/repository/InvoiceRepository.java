@@ -9,7 +9,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
-import java.time.Instant;
+import java.math.BigInteger;
 import java.util.List;
 import java.util.Optional;
 
@@ -51,7 +51,7 @@ public interface InvoiceRepository extends JpaRepository<Invoice, String> {
         AND i.status = :from
         ORDER BY i.hashId
         """)
-    List<Invoice> lockByExpirationAndNotPaid(Instant now, Status from);
+    List<Invoice> lockByExpirationAndNotPaid(BigInteger now, Status from);
 }
 
 

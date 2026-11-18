@@ -20,8 +20,8 @@ import org.web3j.crypto.Hash;
 import org.web3j.protocol.Web3j;
 
 import java.io.IOException;
+import java.math.BigInteger;
 import java.time.Clock;
-import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -88,7 +88,7 @@ public class InvoiceService {
     @Scheduled(fixedDelay = 30000)
     @Transactional
     public boolean expireInvoice() {
-        List<Invoice> lockedInvoices = invoiceRepository.lockByExpirationAndNotPaid(Instant.now(clock), Status.NOT_PAID);
+        List<Invoice> lockedInvoices = invoiceRepository.lockByExpirationAndNotPaid(BigInteger.valueOf(clock.millis()), Status.NOT_PAID);
         if (lockedInvoices.isEmpty()) {
             return false;
         }

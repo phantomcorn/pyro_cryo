@@ -9,6 +9,7 @@ import com.example.pyro_cryo.utils.webhooks.EventMessage;
 import com.example.pyro_cryo.utils.webhooks.EventSender;
 import com.example.pyro_cryo.utils.webhooks.exceptions.RetryableWebhookException;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -100,6 +101,26 @@ public class WebhooksIntegrationTest {
 
         inbox.getPublisher().onNext(message);
         Mockito.verify(sender).send(
+                message.getInvoiceId(),
+                EventMessage.statusToInvoiceEventStatus(message.getStatus()),
+                merchantDto
+        );
+    }
+
+    @Test
+    public void NewInvoiceDoesNotTriggerWebhook() throws ExecutionException, InterruptedException {
+        EventMessage message = EventMessage
+                .builder()
+                .username(merchantUsername)
+                .merchantAddress(merchantAddress)
+                .invoiceId(Hash.sha3String(UUID.randomUUID().toString()))
+                .status(Status.NOT_PAID)
+                .build();
+
+        MerchantDto merchantDto = merchantService.findMerchantByUsername(merchantUsername).get();
+
+        inbox.getPublisher().onNext(message);
+        Mockito.verify(sender, Mockito.never()).send(
                 message.getInvoiceId(),
                 EventMessage.statusToInvoiceEventStatus(message.getStatus()),
                 merchantDto
