@@ -9,13 +9,14 @@ import io.reactivex.disposables.Disposable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.retry.support.RetryTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.util.NoSuchElementException;
 
 @Component
 @Profile("!test")
-public class EventDispatcher { //subscriber to EventInbox
+public class EventMessageService { //subscriber to EventInbox
 
     @Autowired
     MerchantService merchantService;
@@ -27,12 +28,17 @@ public class EventDispatcher { //subscriber to EventInbox
 
     RetryTemplate retryTemplate;
 
-    public EventDispatcher(EventOutbox inbox) {
+    public EventMessageService(EventOutbox inbox) {
         disposable = inbox.getPublisher().subscribe(this::handler, this::onError);
         retryTemplate = RetryTemplate.builder()
                 .maxAttempts(3).retryOn(RetryableWebhookException.class)
                 .exponentialBackoff(1000,2, 5000, true)
                 .build();
+    }
+
+    @Scheduled(fixedDelayString = "30000")
+    public void processEventMessage() {
+
     }
 
     public void handler(EventMessage message) {

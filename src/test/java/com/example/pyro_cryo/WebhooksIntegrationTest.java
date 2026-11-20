@@ -3,7 +3,7 @@ package com.example.pyro_cryo;
 import com.example.pyro_cryo.dto.MerchantDto;
 import com.example.pyro_cryo.entity.Status;
 import com.example.pyro_cryo.service.MerchantService;
-import com.example.pyro_cryo.utils.webhooks.EventDispatcher;
+import com.example.pyro_cryo.utils.webhooks.EventMessageService;
 import com.example.pyro_cryo.utils.webhooks.EventOutbox;
 import com.example.pyro_cryo.utils.webhooks.entity.EventMessage;
 import com.example.pyro_cryo.utils.webhooks.EventSender;
@@ -56,13 +56,13 @@ public class WebhooksIntegrationTest {
     @Mock
     private HttpResponse<String> httpResponse;
 
-    EventDispatcher dispatcher;
+    EventMessageService dispatcher;
     String merchantAddress = "0x1111111111111111111111111111111111111111";
     String merchantUsername = "user1";
 
     @BeforeEach
     public void buildDispatcher() {
-        dispatcher = new EventDispatcher(inbox);
+        dispatcher = new EventMessageService(inbox);
         ReflectionTestUtils.setField(dispatcher, "merchantService", merchantService);
         ReflectionTestUtils.setField(dispatcher, "sender", sender);
     }
