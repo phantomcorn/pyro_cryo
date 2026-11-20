@@ -7,18 +7,10 @@ import com.example.pyro_cryo.utils.webhooks.exceptions.RetryableWebhookException
 import io.reactivex.disposables.Disposable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
-import org.springframework.retry.annotation.Backoff;
-import org.springframework.retry.annotation.EnableRetry;
-import org.springframework.retry.annotation.Recover;
-import org.springframework.retry.annotation.Retryable;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.HttpStatusCodeException;
 
 import java.util.NoSuchElementException;
-import java.util.Optional;
-import java.util.concurrent.CompletionException;
-import java.util.concurrent.ExecutionException;
 
 @Component
 @Profile("!test")
@@ -34,7 +26,7 @@ public class EventDispatcher { //subscriber to EventInbox
 
     RetryTemplate retryTemplate;
 
-    public EventDispatcher(EventInbox inbox) {
+    public EventDispatcher(EventOutbox inbox) {
         disposable = inbox.getPublisher().subscribe(this::handler, this::onError);
         retryTemplate = RetryTemplate.builder()
                 .maxAttempts(3).retryOn(RetryableWebhookException.class)

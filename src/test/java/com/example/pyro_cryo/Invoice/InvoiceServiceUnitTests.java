@@ -5,7 +5,7 @@ import com.example.pyro_cryo.entity.Status;
 import com.example.pyro_cryo.repository.InvoiceRepository;
 import com.example.pyro_cryo.service.InvoiceService;
 import com.example.pyro_cryo.utils.Web3jClient;
-import com.example.pyro_cryo.utils.webhooks.EventInbox;
+import com.example.pyro_cryo.utils.webhooks.EventOutbox;
 import com.example.pyro_cryo.utils.webhooks.EventMessage;
 import io.reactivex.processors.PublishProcessor;
 import org.junit.jupiter.api.Assertions;
@@ -38,7 +38,7 @@ public class InvoiceServiceUnitTests {
     InvoiceRepository invoiceRepository;
 
     @Mock
-    EventInbox inbox;
+    EventOutbox inbox;
 
     String INVALID_HASH_ID = "0x" + repeat("ff", 32);
     String VALID_HASH_ID = "0x" + repeat("ab", 32);

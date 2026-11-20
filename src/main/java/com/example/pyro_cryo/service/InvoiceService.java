@@ -8,7 +8,7 @@ import com.example.pyro_cryo.repository.InvoiceRepository;
 import com.example.pyro_cryo.dto.response.PayResponse;
 import com.example.pyro_cryo.utils.dto.NewSignatureDto;
 import com.example.pyro_cryo.utils.Web3jClient;
-import com.example.pyro_cryo.utils.webhooks.EventInbox;
+import com.example.pyro_cryo.utils.webhooks.EventOutbox;
 import com.example.pyro_cryo.utils.webhooks.EventMessage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -39,7 +39,7 @@ public class InvoiceService {
     Credentials credentials;
 
     @Autowired
-    EventInbox inbox;
+    EventOutbox outbox;
 
     @Autowired
     Clock clock;
@@ -98,7 +98,7 @@ public class InvoiceService {
 
         assert(changes == lockedInvoices.size());
         lockedInvoices.forEach(invoice ->
-                inbox.getPublisher().onNext(message(invoice, Status.EXPIRED))
+                outbox.getPublisher().onNext(message(invoice, Status.EXPIRED))
         );
         return true;
     }
@@ -120,7 +120,7 @@ public class InvoiceService {
 
         assert(changes == lockedInvoices.size());
         lockedInvoices.forEach(invoice ->
-                inbox.getPublisher().onNext(message(invoice, Status.DETECTED))
+                outbox.getPublisher().onNext(message(invoice, Status.DETECTED))
         );
         return true;
     }
@@ -137,7 +137,7 @@ public class InvoiceService {
 
         assert(changes == lockedIds.size());
         lockedInvoices.forEach(invoice ->
-                inbox.getPublisher().onNext(message(invoice, Status.CONFIRMED))
+                outbox.getPublisher().onNext(message(invoice, Status.CONFIRMED))
         );
         return true;
     }
@@ -159,7 +159,7 @@ public class InvoiceService {
 
         assert(changes == lockedInvoices.size());
         lockedInvoices.forEach(invoice ->
-                inbox.getPublisher().onNext(message(invoice, Status.REORG))
+                outbox.getPublisher().onNext(message(invoice, Status.REORG))
         );
         return true;
     }

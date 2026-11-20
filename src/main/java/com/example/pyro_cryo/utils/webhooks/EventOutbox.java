@@ -5,12 +5,12 @@ import lombok.Getter;
 import org.springframework.stereotype.Component;
 
 @Component
-public class EventInbox {
+public class EventOutbox {
 
     @Getter
     private final PublishProcessor<EventMessage> publisher;
 
-    public EventInbox() {
+    public EventOutbox() {
         publisher = PublishProcessor.create();
     }
 
