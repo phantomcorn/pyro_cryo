@@ -1,13 +1,23 @@
-package com.example.pyro_cryo.utils.webhooks;
+package com.example.pyro_cryo.utils.webhooks.entity;
 
 import com.example.pyro_cryo.entity.Status;
-import lombok.Builder;
-import lombok.Getter;
+import com.example.pyro_cryo.utils.webhooks.InvoiceEventStatus;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import lombok.*;
 
+@Entity(name = "event_messages")
 @Builder
-@Getter
+@NoArgsConstructor
+@AllArgsConstructor
+@Getter @Setter
 public class EventMessage {
 
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    String id;
     String username;
     String merchantAddress;
     String invoiceId;

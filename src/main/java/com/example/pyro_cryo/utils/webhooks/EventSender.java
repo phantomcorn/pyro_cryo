@@ -2,6 +2,7 @@ package com.example.pyro_cryo.utils.webhooks;
 
 import com.example.pyro_cryo.dto.MerchantDto;
 import com.example.pyro_cryo.utils.HMacUtil;
+import com.example.pyro_cryo.utils.webhooks.entity.EventMessage;
 import com.example.pyro_cryo.utils.webhooks.exceptions.NonRetryableWebhookException;
 import com.example.pyro_cryo.utils.webhooks.exceptions.RetryableWebhookException;
 import io.vertx.core.json.JsonObject;

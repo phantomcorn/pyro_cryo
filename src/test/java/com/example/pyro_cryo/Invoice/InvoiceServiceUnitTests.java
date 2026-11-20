@@ -6,7 +6,7 @@ import com.example.pyro_cryo.repository.InvoiceRepository;
 import com.example.pyro_cryo.service.InvoiceService;
 import com.example.pyro_cryo.utils.Web3jClient;
 import com.example.pyro_cryo.utils.webhooks.EventOutbox;
-import com.example.pyro_cryo.utils.webhooks.EventMessage;
+import com.example.pyro_cryo.utils.webhooks.entity.EventMessage;
 import io.reactivex.processors.PublishProcessor;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;

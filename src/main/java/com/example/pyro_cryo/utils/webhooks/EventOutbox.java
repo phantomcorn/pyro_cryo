@@ -1,5 +1,6 @@
 package com.example.pyro_cryo.utils.webhooks;
 
+import com.example.pyro_cryo.utils.webhooks.entity.EventMessage;
 import io.reactivex.processors.PublishProcessor;
 import lombok.Getter;
 import org.springframework.stereotype.Component;

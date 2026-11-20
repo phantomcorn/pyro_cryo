@@ -9,7 +9,7 @@ import com.example.pyro_cryo.dto.response.PayResponse;
 import com.example.pyro_cryo.utils.dto.NewSignatureDto;
 import com.example.pyro_cryo.utils.Web3jClient;
 import com.example.pyro_cryo.utils.webhooks.EventOutbox;
-import com.example.pyro_cryo.utils.webhooks.EventMessage;
+import com.example.pyro_cryo.utils.webhooks.entity.EventMessage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;

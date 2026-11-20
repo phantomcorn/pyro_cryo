@@ -3,6 +3,7 @@ package com.example.pyro_cryo.utils.webhooks;
 import com.example.pyro_cryo.dto.MerchantDto;
 import com.example.pyro_cryo.entity.Status;
 import com.example.pyro_cryo.service.MerchantService;
+import com.example.pyro_cryo.utils.webhooks.entity.EventMessage;
 import com.example.pyro_cryo.utils.webhooks.exceptions.RetryableWebhookException;
 import io.reactivex.disposables.Disposable;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,16 +36,16 @@ public class EventDispatcher { //subscriber to EventInbox
     }
 
     public void handler(EventMessage message) {
-        if (message.status.equals(Status.NOT_PAID)) {
+        if (message.getStatus().equals(Status.NOT_PAID)) {
             return; //we don't need to send webhook for when invoice is created
         }
 
         //find merchant uri
-        MerchantDto merchantDto = merchantService.findMerchantByUsername(message.username).orElseThrow(NoSuchElementException::new);
+        MerchantDto merchantDto = merchantService.findMerchantByUsername(message.getUsername()).orElseThrow(NoSuchElementException::new);
 
         retryTemplate.execute(
                 ctx -> { //try 3 times
-                    sender.send(message.invoiceId, EventMessage.statusToInvoiceEventStatus(message.status), merchantDto);
+                    sender.send(message.getInvoiceId(), EventMessage.statusToInvoiceEventStatus(message.getStatus()), merchantDto);
                     return null;
                 },
                 ctx -> { //fallback

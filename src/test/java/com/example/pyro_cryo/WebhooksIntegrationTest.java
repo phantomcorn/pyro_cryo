@@ -5,7 +5,7 @@ import com.example.pyro_cryo.entity.Status;
 import com.example.pyro_cryo.service.MerchantService;
 import com.example.pyro_cryo.utils.webhooks.EventDispatcher;
 import com.example.pyro_cryo.utils.webhooks.EventOutbox;
-import com.example.pyro_cryo.utils.webhooks.EventMessage;
+import com.example.pyro_cryo.utils.webhooks.entity.EventMessage;
 import com.example.pyro_cryo.utils.webhooks.EventSender;
 import com.example.pyro_cryo.utils.webhooks.exceptions.RetryableWebhookException;
 import org.junit.jupiter.api.AfterEach;
