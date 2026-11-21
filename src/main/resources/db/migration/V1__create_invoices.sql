@@ -37,4 +37,12 @@ CREATE TABLE api_keys(
     label VARCHAR(256) NOT NULL,
     merchant_username VARCHAR(256) NOT NULL,
     FOREIGN KEY (merchant_username) REFERENCES merchant(username)
-)
+);
+
+CREATE TABLE event_messages(
+    id VARCHAR(256) PRIMARY KEY,
+    username VARCHAR(256) NOT NULL,
+    merchant_address VARCHAR(42) NOT NULL,
+    invoice_id VARCHAR(66) NOT NULL,
+    status invoice_status NOT NULL
+);
