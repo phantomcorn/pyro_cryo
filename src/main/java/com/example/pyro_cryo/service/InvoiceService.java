@@ -8,7 +8,7 @@ import com.example.pyro_cryo.repository.InvoiceRepository;
 import com.example.pyro_cryo.dto.response.PayResponse;
 import com.example.pyro_cryo.utils.dto.NewSignatureDto;
 import com.example.pyro_cryo.utils.Web3jClient;
-import com.example.pyro_cryo.utils.webhooks.EventOutbox;
+import com.example.pyro_cryo.utils.webhooks.repository.EventMessageRepository;
 import com.example.pyro_cryo.utils.webhooks.entity.EventMessage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -39,7 +39,7 @@ public class InvoiceService {
     Credentials credentials;
 
     @Autowired
-    EventOutbox outbox;
+    EventMessageRepository eventMessageRepository;
 
     @Autowired
     Clock clock;
@@ -97,9 +97,10 @@ public class InvoiceService {
         int changes = invoiceRepository.transition(lockedIds, Status.NOT_PAID, Status.EXPIRED);
 
         assert(changes == lockedInvoices.size());
-        lockedInvoices.forEach(invoice ->
-                outbox.getPublisher().onNext(message(invoice, Status.EXPIRED))
-        );
+        eventMessageRepository.saveAll(
+                lockedInvoices.stream().map(invoice -> message(invoice, Status.EXPIRED)
+        ).toList());
+
         return true;
     }
 
@@ -119,9 +120,10 @@ public class InvoiceService {
         int changes = invoiceRepository.transition(lockedIds, Status.NOT_PAID, Status.DETECTED);
 
         assert(changes == lockedInvoices.size());
-        lockedInvoices.forEach(invoice ->
-                outbox.getPublisher().onNext(message(invoice, Status.DETECTED))
-        );
+
+        eventMessageRepository.saveAll(
+                lockedInvoices.stream().map(invoice -> message(invoice, Status.DETECTED)
+                ).toList());
         return true;
     }
 
@@ -136,8 +138,9 @@ public class InvoiceService {
         int changes = invoiceRepository.transition(lockedIds, Status.DETECTED, Status.CONFIRMED);
 
         assert(changes == lockedIds.size());
-        lockedInvoices.forEach(invoice ->
-                outbox.getPublisher().onNext(message(invoice, Status.CONFIRMED))
+
+        eventMessageRepository.saveAll(
+                lockedInvoices.stream().map(invoice -> message(invoice, Status.CONFIRMED)).toList()
         );
         return true;
     }
@@ -158,9 +161,9 @@ public class InvoiceService {
         int changes = invoiceRepository.transition(lockedIds, Status.DETECTED, Status.REORG);
 
         assert(changes == lockedInvoices.size());
-        lockedInvoices.forEach(invoice ->
-                outbox.getPublisher().onNext(message(invoice, Status.REORG))
-        );
+        eventMessageRepository.saveAll(
+                lockedInvoices.stream().map(invoice -> message(invoice, Status.REORG)
+        ).toList());
         return true;
     }
 
