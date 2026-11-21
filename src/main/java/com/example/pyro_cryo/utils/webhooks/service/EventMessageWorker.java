@@ -69,6 +69,7 @@ public class EventMessageWorker implements Runnable {
         retryTemplate.execute(
                 ctx -> { //try 3 times
                     send(message.getInvoiceId(), EventMessage.statusToInvoiceEventStatus(message.getStatus()), merchantDto);
+                    outbox.markAsProcessed(message);
                     return null;
                 },
                 ctx -> { //fallback

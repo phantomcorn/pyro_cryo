@@ -37,6 +37,9 @@ public class EventMessageService {
         return eventOutbox.take();
     }
 
-
+    public void markAsProcessed(EventMessage message) {
+        message.setSent(true);
+        eventMessageRepository.save(message);
+    }
 
 }
