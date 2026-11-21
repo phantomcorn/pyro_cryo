@@ -44,5 +44,6 @@ CREATE TABLE event_messages(
     username VARCHAR(256) NOT NULL,
     merchant_address VARCHAR(42) NOT NULL,
     invoice_id VARCHAR(66) NOT NULL,
-    status invoice_status NOT NULL
+    status invoice_status NOT NULL,
+    is_sent BOOLEAN DEFAULT FALSE
 );

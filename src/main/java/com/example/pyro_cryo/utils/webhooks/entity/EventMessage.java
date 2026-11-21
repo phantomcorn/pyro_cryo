@@ -33,6 +33,10 @@ public class EventMessage {
     @Enumerated(EnumType.STRING)
     Status status;
 
+    @Builder.Default
+    @Column(name = "is_sent")
+    boolean isSent = false;
+
     public static InvoiceEventStatus statusToInvoiceEventStatus(Status status) {
 
         InvoiceEventStatus res = null;
