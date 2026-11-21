@@ -1,25 +1,34 @@
-package com.example.pyro_cryo.utils.webhooks;
+package com.example.pyro_cryo.utils.webhooks.service;
 
 import com.example.pyro_cryo.dto.MerchantDto;
 import com.example.pyro_cryo.entity.Status;
 import com.example.pyro_cryo.service.MerchantService;
+import com.example.pyro_cryo.utils.webhooks.EventOutbox;
+import com.example.pyro_cryo.utils.webhooks.EventSender;
 import com.example.pyro_cryo.utils.webhooks.entity.EventMessage;
 import com.example.pyro_cryo.utils.webhooks.exceptions.RetryableWebhookException;
+import com.example.pyro_cryo.utils.webhooks.repository.EventMessageRepository;
 import io.reactivex.disposables.Disposable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.retry.support.RetryTemplate;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import java.util.NoSuchElementException;
 
-@Component
+@Service
 @Profile("!test")
+@EnableAsync
 public class EventMessageService { //subscriber to EventInbox
 
     @Autowired
     MerchantService merchantService;
+
+    @Autowired
+    EventMessageRepository eventMessageRepository;
 
     @Autowired
     EventSender sender;

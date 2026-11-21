@@ -3,7 +3,7 @@ package com.example.pyro_cryo;
 import com.example.pyro_cryo.dto.MerchantDto;
 import com.example.pyro_cryo.entity.Status;
 import com.example.pyro_cryo.service.MerchantService;
-import com.example.pyro_cryo.utils.webhooks.EventMessageService;
+import com.example.pyro_cryo.utils.webhooks.service.EventMessageService;
 import com.example.pyro_cryo.utils.webhooks.EventOutbox;
 import com.example.pyro_cryo.utils.webhooks.entity.EventMessage;
 import com.example.pyro_cryo.utils.webhooks.EventSender;
