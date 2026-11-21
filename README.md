@@ -20,11 +20,24 @@ Crypto payment gateway using Spring Boot API and Web3j watcher
 - [x] Expires unpaid invoice sends `order.expired` webhook to merchant
 ### Future
 - [ ] Buyer can transfer directly through cold wallet (QR code payment)
-- [ ] Monitor token Transfer event incase buyer transfer directly to merchant address using QR code
-- [ ] Detect Transfer event from token contract on the blockchain and update invoice status
+  - [ ] Monitor token Transfer event incase buyer transfer directly to merchant address using QR code
+  - [ ] Detect Transfer event from token contract on the blockchain and update invoice status
 - [ ] Refund (webhooks)
   - [ ] Partial refund
-### Edge cases
+### Edge cases (Grilled By AI)
+- [x] Adding more watchers. Watcher both detect invoice can finalize. Both update invoice status, both sends webhooks
+  - [x] Condition update + Lock
+- [x] You mark your invoice as CONFIRMED and calls send webhooks. Just as you are about to send your server crashes -> user doesn't recieve confirmation but your system says invoice is confirmed. (Dual-write problem)
+  - [x] When updating status to your invoice also write to outbox database
+  - [x] Read from outbox database into queue.
+  - [x] Worker processed message from the queue.
+  - [x] Once finished, mark entry as processed (Mark before or after? After. Prefer duplicate webhooks mitigate with idempotency over silent loss)
+- [ ] Decision: Single background job to read outbox db and store in in-memory queue or multiple?
+  - [ ] Single. Multiple adds unnecessary complexity. 
+  - [ ] Single may retrieve billions and queue overflows and crash. Set limit on how much is retrieved at a time.
+  - [ ] Active-passive failover
+    - [ ] A network blip promote passive to active but previous active is still alive. Now there's 2 active
+        - [ ] Introducing a manager introduces a single point of failure
 - [ ] Buyer clicks pay 1 second before expiry, contract `block.timestamp` shows expired. Transaction reverts + gas fee paid
   - [ ] Add grace period in contract
     - [ ] `order.expired` webhook but function still accepts payment within grace period
