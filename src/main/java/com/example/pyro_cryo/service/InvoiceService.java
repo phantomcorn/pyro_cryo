@@ -123,7 +123,7 @@ public class InvoiceService {
 
         eventMessageRepository.saveAll(
                 lockedInvoices.stream().map(invoice -> message(invoice, Status.DETECTED)
-                ).toList());
+        ).toList());
         return true;
     }
 
@@ -167,7 +167,7 @@ public class InvoiceService {
         return true;
     }
 
-    private EventMessage message(Invoice invoice, Status status) {
+    public static EventMessage message(Invoice invoice, Status status) {
         return EventMessage.builder()
                 .invoiceId(invoice.getHashId())
                 .merchantAddress(invoice.getMerchantAddress())

@@ -5,7 +5,9 @@ import com.example.pyro_cryo.entity.Status;
 import com.example.pyro_cryo.repository.InvoiceRepository;
 import com.example.pyro_cryo.service.InvoiceService;
 import com.example.pyro_cryo.utils.Web3jClient;
-import com.example.pyro_cryo.utils.webhooks.EventOutbox;
+import com.example.pyro_cryo.utils.webhooks.repository.EventMessageRepository;
+import com.example.pyro_cryo.utils.webhooks.service.EventMessageService;
+import com.example.pyro_cryo.utils.webhooks.service.EventMessageWorker;
 import com.example.pyro_cryo.utils.webhooks.entity.EventMessage;
 import io.reactivex.processors.PublishProcessor;
 import org.junit.jupiter.api.Assertions;
@@ -38,7 +40,7 @@ public class InvoiceServiceUnitTests {
     InvoiceRepository invoiceRepository;
 
     @Mock
-    EventOutbox inbox;
+    EventMessageRepository eventMessageRepository;
 
     String INVALID_HASH_ID = "0x" + repeat("ff", 32);
     String VALID_HASH_ID = "0x" + repeat("ab", 32);
@@ -46,9 +48,6 @@ public class InvoiceServiceUnitTests {
     Invoice DETECTED_INVOICE;
     Invoice REORG_INVOICE;
     Invoice CONFIRMED_INVOICE;
-
-    @Mock
-    PublishProcessor<EventMessage> publisher;
 
     public InvoiceServiceUnitTests() {
         String uuid = UUID.randomUUID().toString();
@@ -95,12 +94,6 @@ public class InvoiceServiceUnitTests {
                 .chainId(Web3jClient.CHAIN_ID)
                 .status(Status.CONFIRMED)
                 .build();
-        publisher = mock(PublishProcessor.class);
-    }
-
-    @BeforeEach
-    public void mockPublisher() {
-        when(inbox.getPublisher()).thenReturn(publisher);
     }
 
     @Test
@@ -117,19 +110,25 @@ public class InvoiceServiceUnitTests {
     public void detectPaymentOnNonExistingInvoiceWillReturnsFalse() {
         Mockito.when(invoiceRepository.lockByStatus(List.of(INVALID_HASH_ID), Status.NOT_PAID)).thenReturn(List.of());
         Assertions.assertFalse(invoiceService.detectPayment(INVALID_HASH_ID));
-        verify(publisher, never()).onNext(any(EventMessage.class));
+        verify(eventMessageRepository, never()).saveAll(any());
     }
 
     @Test
     public void detectPaymentOnExistingInvoiceWillReturnTrue() {
+        List<Invoice> lockedInvoice = List.of(UNPAID_INVOICE);
         Mockito.when(invoiceRepository.lockByStatus(List.of(VALID_HASH_ID), Status.NOT_PAID)).thenReturn(List.of(UNPAID_INVOICE));
         Mockito.when(invoiceRepository.transition(List.of(UNPAID_INVOICE.getHashId()), Status.NOT_PAID, Status.DETECTED)).thenReturn(1);
         Assertions.assertTrue(invoiceService.detectPayment(VALID_HASH_ID));
-        verify(publisher, times(1)).onNext(
-                argThat(message ->
-                        message.getInvoiceId().equals(UNPAID_INVOICE.getHashId()) &&
-                        message.getStatus().equals(Status.DETECTED) &&
-                        message.getMerchantAddress().equals(UNPAID_INVOICE.getMerchantAddress())
+        verify(eventMessageRepository).saveAll(
+                argThat(
+                        iter -> {
+                            for (EventMessage message : iter) {
+                                if (!message.getStatus().equals(Status.DETECTED)) {
+                                    return false;
+                                }
+                            }
+                            return true;
+                        }
                 )
         );
     }
@@ -139,7 +138,7 @@ public class InvoiceServiceUnitTests {
         Assertions.assertFalse(invoiceService.detectPayment(VALID_HASH_ID));
         verify(invoiceRepository, never()).lockByStatus(List.of(VALID_HASH_ID), Status.CONFIRMED);
         verify(invoiceRepository, never()).transition(List.of(VALID_HASH_ID), Status.CONFIRMED, Status.DETECTED);
-        verify(publisher, never()).onNext(any(EventMessage.class));
+        verify(eventMessageRepository, never()).saveAll(any());
     }
 
     @Test
@@ -147,7 +146,7 @@ public class InvoiceServiceUnitTests {
         Assertions.assertFalse(invoiceService.detectPayment(VALID_HASH_ID));
         verify(invoiceRepository, never()).lockByStatus(List.of(VALID_HASH_ID), Status.DETECTED);
         verify(invoiceRepository, never()).transition(List.of(VALID_HASH_ID), Status.DETECTED, Status.DETECTED);
-        verify(publisher, never()).onNext(any(EventMessage.class));
+        verify(eventMessageRepository, never()).saveAll(any());
     }
 
     @Test
@@ -155,19 +154,25 @@ public class InvoiceServiceUnitTests {
         Assertions.assertFalse(invoiceService.detectPayment(VALID_HASH_ID));
         verify(invoiceRepository, never()).lockByStatus(List.of(VALID_HASH_ID), Status.REORG);
         verify(invoiceRepository, never()).transition(List.of(VALID_HASH_ID), Status.REORG, Status.DETECTED);
-        verify(publisher, never()).onNext(any(EventMessage.class));
+        verify(eventMessageRepository, never()).saveAll(any());
     }
 
     @Test
     public void detectPaymentOnlyProcessUnpaidInvoiceWillReturnTrue() {
-        Mockito.when(invoiceRepository.lockByStatus(List.of(VALID_HASH_ID), Status.NOT_PAID)).thenReturn(List.of(UNPAID_INVOICE));
+        List<Invoice> lockedInvoice = List.of(UNPAID_INVOICE);
+        Mockito.when(invoiceRepository.lockByStatus(List.of(VALID_HASH_ID), Status.NOT_PAID)).thenReturn(lockedInvoice);
         Mockito.when(invoiceRepository.transition(List.of(UNPAID_INVOICE.getHashId()), Status.NOT_PAID, Status.DETECTED)).thenReturn(1);
         Assertions.assertTrue(invoiceService.detectPayment(VALID_HASH_ID));
-        verify(publisher, times(1)).onNext(
-                argThat(message ->
-                        message.getInvoiceId().equals(UNPAID_INVOICE.getHashId()) &&
-                                message.getStatus().equals(Status.DETECTED) &&
-                                message.getMerchantAddress().equals(UNPAID_INVOICE.getMerchantAddress())
+        verify(eventMessageRepository).saveAll(
+                argThat(
+                        iter -> {
+                            for (EventMessage message : iter) {
+                                if (!message.getStatus().equals(Status.DETECTED)) {
+                                    return false;
+                                }
+                            }
+                            return true;
+                        }
                 )
         );
     }
@@ -176,19 +181,25 @@ public class InvoiceServiceUnitTests {
     public void revertOnNonExistingInvoiceWillReturnsFalse() {
         Mockito.when(invoiceRepository.lockByStatus(List.of(INVALID_HASH_ID), Status.DETECTED)).thenReturn(List.of());
         Assertions.assertFalse(invoiceService.revert(INVALID_HASH_ID));
-        verify(publisher, never()).onNext(any(EventMessage.class));
+        verify(eventMessageRepository, never()).saveAll(any());
     }
 
     @Test
     public void revertOnExistingInvoiceWillReturnTrue() {
-        Mockito.when(invoiceRepository.lockByStatus(List.of(VALID_HASH_ID), Status.DETECTED)).thenReturn(List.of(UNPAID_INVOICE));
+        List<Invoice> lockedInvoice = List.of(UNPAID_INVOICE);
+        Mockito.when(invoiceRepository.lockByStatus(List.of(VALID_HASH_ID), Status.DETECTED)).thenReturn(lockedInvoice);
         Mockito.when(invoiceRepository.transition(List.of(UNPAID_INVOICE.getHashId()), Status.DETECTED, Status.REORG)).thenReturn(1);
         Assertions.assertTrue(invoiceService.revert(VALID_HASH_ID));
-        verify(publisher, times(1)).onNext(
-                argThat(message ->
-                        message.getInvoiceId().equals(UNPAID_INVOICE.getHashId()) &&
-                                message.getStatus().equals(Status.REORG) &&
-                                message.getMerchantAddress().equals(UNPAID_INVOICE.getMerchantAddress())
+        verify(eventMessageRepository).saveAll(
+                argThat(
+                        iter -> {
+                            for (EventMessage message : iter) {
+                                if (!message.getStatus().equals(Status.REORG)) {
+                                    return false;
+                                }
+                            }
+                            return true;
+                        }
                 )
         );
     }
@@ -198,7 +209,7 @@ public class InvoiceServiceUnitTests {
         Assertions.assertFalse(invoiceService.revert(VALID_HASH_ID));
         verify(invoiceRepository, never()).lockByStatus(List.of(VALID_HASH_ID), Status.NOT_PAID);
         verify(invoiceRepository, never()).transition(List.of(VALID_HASH_ID), Status.NOT_PAID, Status.REORG);
-        verify(publisher, never()).onNext(any(EventMessage.class));
+        verify(eventMessageRepository, never()).saveAll(any());
     }
 
     @Test
@@ -206,7 +217,7 @@ public class InvoiceServiceUnitTests {
         Assertions.assertFalse(invoiceService.detectPayment(VALID_HASH_ID));
         verify(invoiceRepository, never()).lockByStatus(List.of(VALID_HASH_ID), Status.CONFIRMED);
         verify(invoiceRepository, never()).transition(List.of(VALID_HASH_ID), Status.CONFIRMED, Status.REORG);
-        verify(publisher, never()).onNext(any(EventMessage.class));
+        verify(eventMessageRepository, never()).saveAll(any());
     }
 
     @Test
@@ -214,35 +225,46 @@ public class InvoiceServiceUnitTests {
         Assertions.assertFalse(invoiceService.detectPayment(VALID_HASH_ID));
         verify(invoiceRepository, never()).lockByStatus(List.of(VALID_HASH_ID), Status.REORG);
         verify(invoiceRepository, never()).transition(List.of(VALID_HASH_ID), Status.REORG, Status.REORG);
-        verify(publisher, never()).onNext(any(EventMessage.class));
+        verify(eventMessageRepository, never()).saveAll(any());
     }
 
     @Test
     public void revertOnlyProcessDetectedInvoiceWillReturnTrue() {
-        Mockito.when(invoiceRepository.lockByStatus(List.of(VALID_HASH_ID), Status.DETECTED)).thenReturn(List.of(DETECTED_INVOICE));
+        List<Invoice> lockedInvoice = List.of(DETECTED_INVOICE);
+        Mockito.when(invoiceRepository.lockByStatus(List.of(VALID_HASH_ID), Status.DETECTED)).thenReturn(lockedInvoice);
         Mockito.when(invoiceRepository.transition(List.of(DETECTED_INVOICE.getHashId()), Status.DETECTED, Status.REORG)).thenReturn(1);
         Assertions.assertTrue(invoiceService.revert(VALID_HASH_ID));
-        verify(publisher, times(1)).onNext(
-                argThat(message ->
-                        message.getInvoiceId().equals(DETECTED_INVOICE.getHashId()) &&
-                                message.getStatus().equals(Status.REORG) &&
-                                message.getMerchantAddress().equals(DETECTED_INVOICE.getMerchantAddress())
+        verify(eventMessageRepository).saveAll(
+                argThat(
+                        iter -> {
+                            for (EventMessage message : iter) {
+                                if (!message.getStatus().equals(Status.REORG)) {
+                                    return false;
+                                }
+                            }
+                            return true;
+                        }
                 )
         );
     }
 
     @Test
     public void detectPaymentAllWithAllUnpaidInvoiceWillReturnTrue() {
-        List<Invoice> invoices = List.of(UNPAID_INVOICE, UNPAID_INVOICE, UNPAID_INVOICE, UNPAID_INVOICE);
-        List<String> ids = invoices.stream().map(Invoice::getHashId).toList();
-        Mockito.when(invoiceRepository.lockByStatus(ids, Status.NOT_PAID)).thenReturn(invoices);
+        List<Invoice> lockedInvoice = List.of(UNPAID_INVOICE, UNPAID_INVOICE, UNPAID_INVOICE, UNPAID_INVOICE);
+        List<String> ids = lockedInvoice.stream().map(Invoice::getHashId).toList();
+        Mockito.when(invoiceRepository.lockByStatus(ids, Status.NOT_PAID)).thenReturn(lockedInvoice);
         Mockito.when(invoiceRepository.transition(ids, Status.NOT_PAID, Status.DETECTED)).thenReturn(ids.size());
         Assertions.assertTrue(invoiceService.detectPaymentAll(ids));
-        verify(publisher, times(ids.size())).onNext(
-                argThat(message ->
-                        message.getInvoiceId().equals(UNPAID_INVOICE.getHashId()) &&
-                                message.getStatus().equals(Status.DETECTED) &&
-                                message.getMerchantAddress().equals(UNPAID_INVOICE.getMerchantAddress())
+        verify(eventMessageRepository).saveAll(
+                argThat(
+                        iter -> {
+                            for (EventMessage message : iter) {
+                                if (!message.getStatus().equals(Status.DETECTED)) {
+                                    return false;
+                                }
+                            }
+                            return true;
+                        }
                 )
         );
     }
@@ -253,36 +275,47 @@ public class InvoiceServiceUnitTests {
 
         Mockito.when(invoiceRepository.lockByStatus(ids, Status.DETECTED)).thenReturn(List.of());
         Assertions.assertFalse(invoiceService.revertAll(ids));
-        verify(publisher, never()).onNext(any(EventMessage.class));
+        verify(eventMessageRepository, never()).saveAll(any());
     }
 
     @Test
     public void detectPaymentAllWillOnlyUpdateUnpaidInvoice() {
+        List<Invoice> lockedInvoice = List.of(UNPAID_INVOICE);
         List<String> ids = List.of(DETECTED_INVOICE.getHashId(), UNPAID_INVOICE.getHashId(), CONFIRMED_INVOICE.getHashId(), UNPAID_INVOICE.getHashId());
-        Mockito.when(invoiceRepository.lockByStatus(ids, Status.NOT_PAID)).thenReturn(List.of(UNPAID_INVOICE));
+        Mockito.when(invoiceRepository.lockByStatus(ids, Status.NOT_PAID)).thenReturn(lockedInvoice);
         Mockito.when(invoiceRepository.transition(List.of(UNPAID_INVOICE.getHashId()), Status.NOT_PAID, Status.DETECTED)).thenReturn(1);
         Assertions.assertTrue(invoiceService.detectPaymentAll(ids));
-        verify(publisher, times(1)).onNext(
-                argThat(message ->
-                        message.getInvoiceId().equals(UNPAID_INVOICE.getHashId()) &&
-                                message.getStatus().equals(Status.DETECTED) &&
-                                message.getMerchantAddress().equals(UNPAID_INVOICE.getMerchantAddress())
+        verify(eventMessageRepository).saveAll(
+                argThat(
+                        iter -> {
+                            for (EventMessage message : iter) {
+                                if (!message.getStatus().equals(Status.DETECTED)) {
+                                    return false;
+                                }
+                            }
+                            return true;
+                        }
                 )
         );
     }
 
     @Test
     public void toFinalityWithAllDetectedInvoiceWillReturnTrue() {
-        List<Invoice> invoices = List.of(DETECTED_INVOICE, DETECTED_INVOICE, DETECTED_INVOICE, DETECTED_INVOICE);
-        List<String> ids = invoices.stream().map(Invoice::getHashId).toList();
-        Mockito.when(invoiceRepository.lockByStatus(ids, Status.DETECTED)).thenReturn(invoices);
+        List<Invoice> lockedInvoice = List.of(DETECTED_INVOICE, DETECTED_INVOICE, DETECTED_INVOICE, DETECTED_INVOICE);
+        List<String> ids = lockedInvoice.stream().map(Invoice::getHashId).toList();
+        Mockito.when(invoiceRepository.lockByStatus(ids, Status.DETECTED)).thenReturn(lockedInvoice);
         Mockito.when(invoiceRepository.transition(ids, Status.DETECTED, Status.CONFIRMED)).thenReturn(ids.size());
         Assertions.assertTrue(invoiceService.toFinality(ids));
-        verify(publisher, times(ids.size())).onNext(
-                argThat(message ->
-                        message.getInvoiceId().equals(UNPAID_INVOICE.getHashId()) &&
-                                message.getStatus().equals(Status.CONFIRMED) &&
-                                message.getMerchantAddress().equals(UNPAID_INVOICE.getMerchantAddress())
+        verify(eventMessageRepository).saveAll(
+                argThat(
+                        iter -> {
+                            for (EventMessage message : iter) {
+                                if (!message.getStatus().equals(Status.CONFIRMED)) {
+                                    return false;
+                                }
+                            }
+                            return true;
+                        }
                 )
         );
     }
@@ -293,36 +326,48 @@ public class InvoiceServiceUnitTests {
 
         Mockito.when(invoiceRepository.lockByStatus(ids, Status.DETECTED)).thenReturn(List.of());
         Assertions.assertFalse(invoiceService.revertAll(ids));
-        verify(publisher, never()).onNext(any(EventMessage.class));
+        verify(eventMessageRepository, never()).saveAll(any());
     }
 
     @Test
     public void toFinalityWillOnlyUpdateOnDetectedInvoice() {
+        List<Invoice> lockedInvoice = List.of(DETECTED_INVOICE);
         List<String> ids = List.of(DETECTED_INVOICE.getHashId(), UNPAID_INVOICE.getHashId(), CONFIRMED_INVOICE.getHashId(), UNPAID_INVOICE.getHashId());
-        Mockito.when(invoiceRepository.lockByStatus(ids, Status.DETECTED)).thenReturn(List.of(DETECTED_INVOICE));
+        Mockito.when(invoiceRepository.lockByStatus(ids, Status.DETECTED)).thenReturn(lockedInvoice);
         Mockito.when(invoiceRepository.transition(List.of(DETECTED_INVOICE.getHashId()), Status.DETECTED, Status.CONFIRMED)).thenReturn(1);
         Assertions.assertTrue(invoiceService.toFinality(ids));
-        verify(publisher, times(1)).onNext(
-                argThat(message ->
-                        message.getInvoiceId().equals(DETECTED_INVOICE.getHashId()) &&
-                                message.getStatus().equals(Status.CONFIRMED) &&
-                                message.getMerchantAddress().equals(DETECTED_INVOICE.getMerchantAddress())
+        verify(eventMessageRepository).saveAll(
+                argThat(
+                        iter -> {
+                            for (EventMessage message : iter) {
+                                if (!message.getStatus().equals(Status.CONFIRMED)) {
+                                    return false;
+                                }
+                            }
+                            return true;
+                        }
                 )
         );
     }
 
     @Test
     public void revertAllWithAllDetectedInvoiceWillReturnTrue() {
-        List<Invoice> invoices = List.of(DETECTED_INVOICE, DETECTED_INVOICE, DETECTED_INVOICE, DETECTED_INVOICE);
-        List<String> ids = invoices.stream().map(Invoice::getHashId).toList();
-        Mockito.when(invoiceRepository.lockByStatus(ids, Status.DETECTED)).thenReturn(invoices);
+        List<Invoice> lockedInvoice = List.of(DETECTED_INVOICE, DETECTED_INVOICE, DETECTED_INVOICE, DETECTED_INVOICE);
+        List<String> ids = lockedInvoice.stream().map(Invoice::getHashId).toList();
+        Mockito.when(invoiceRepository.lockByStatus(ids, Status.DETECTED)).thenReturn(lockedInvoice);
         Mockito.when(invoiceRepository.transition(ids, Status.DETECTED, Status.REORG)).thenReturn(ids.size());
         Assertions.assertTrue(invoiceService.revertAll(ids));
-        verify(publisher, times(ids.size())).onNext(
-                argThat(message ->
-                        message.getInvoiceId().equals(DETECTED_INVOICE.getHashId()) &&
-                                message.getStatus().equals(Status.REORG) &&
-                                message.getMerchantAddress().equals(DETECTED_INVOICE.getMerchantAddress())
+
+        verify(eventMessageRepository).saveAll(
+                argThat(
+                        iter -> {
+                            for (EventMessage message : iter) {
+                                if (!message.getStatus().equals(Status.REORG)) {
+                                    return false;
+                                }
+                            }
+                            return true;
+                        }
                 )
         );
     }
@@ -333,21 +378,28 @@ public class InvoiceServiceUnitTests {
 
         Mockito.when(invoiceRepository.lockByStatus(ids, Status.DETECTED)).thenReturn(List.of());
         Assertions.assertFalse(invoiceService.revertAll(ids));
-        verify(publisher, never()).onNext(any(EventMessage.class));
+        verify(eventMessageRepository, never()).saveAll(any());
     }
 
     @Test
     public void revertAllWillOnlyUpdateOnDetectedInvoice() {
+        List<Invoice> lockedInvoice = List.of(DETECTED_INVOICE);
+
         List<String> ids = List.of(DETECTED_INVOICE.getHashId(), UNPAID_INVOICE.getHashId(), CONFIRMED_INVOICE.getHashId(), UNPAID_INVOICE.getHashId());
-        Mockito.when(invoiceRepository.lockByStatus(ids, Status.DETECTED)).thenReturn(List.of(DETECTED_INVOICE));
-        Mockito.when(invoiceRepository.transition(List.of(DETECTED_INVOICE.getHashId()), Status.DETECTED, Status.REORG)).thenReturn(1);
+        Mockito.when(invoiceRepository.lockByStatus(ids, Status.DETECTED)).thenReturn(lockedInvoice);
+        Mockito.when(invoiceRepository.transition(lockedInvoice.stream().map(Invoice::getHashId).toList(), Status.DETECTED, Status.REORG)).thenReturn(1);
         Assertions.assertTrue(invoiceService.revertAll(ids));
-        verify(publisher, times(1)).onNext(
-                argThat(message ->
-                        message.getInvoiceId().equals(DETECTED_INVOICE.getHashId()) &&
-                                message.getStatus().equals(Status.REORG) &&
-                                message.getMerchantAddress().equals(DETECTED_INVOICE.getMerchantAddress())
-                )
+        verify(eventMessageRepository).saveAll(
+            argThat(
+                iter -> {
+                    for (EventMessage message : iter) {
+                        if (!message.getStatus().equals(Status.REORG)) {
+                            return false;
+                        }
+                    }
+                    return true;
+                }
+            )
         );
     }
 
