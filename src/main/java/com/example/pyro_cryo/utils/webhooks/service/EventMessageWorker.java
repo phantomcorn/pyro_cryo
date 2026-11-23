@@ -9,9 +9,7 @@ import com.example.pyro_cryo.utils.webhooks.entity.EventMessage;
 import com.example.pyro_cryo.utils.webhooks.exceptions.NonRetryableWebhookException;
 import com.example.pyro_cryo.utils.webhooks.exceptions.RetryableWebhookException;
 import io.vertx.core.json.JsonObject;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.retry.support.RetryTemplate;
-import org.springframework.stereotype.Component;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -21,23 +19,18 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.concurrent.CompletionException;
 
-@Component
 public class EventMessageWorker implements Runnable {
 
-    @Autowired
-    EventMessageService outbox;
-
-    @Autowired
-    MerchantService merchantService;
-
-    RetryTemplate retryTemplate;
-
+    private final EventMessageService outbox;
+    private final MerchantService merchantService;
+    private final RetryTemplate retryTemplate;
     private final HttpClient httpClient;
-
     private volatile boolean running = true;
 
-    EventMessageWorker() {
-        httpClient = HttpClient.newBuilder().build();
+    public EventMessageWorker(EventMessageService outbox, MerchantService merchantService, HttpClient httpClient) {
+        this.outbox = outbox;
+        this.merchantService = merchantService;
+        this.httpClient = httpClient;
         retryTemplate = RetryTemplate.builder()
                 .maxAttempts(3).retryOn(RetryableWebhookException.class)
                 .exponentialBackoff(1000,2, 5000, true)
