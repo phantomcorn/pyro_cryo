@@ -85,3 +85,36 @@ INSERT INTO merchant (
     'https://www.google.com',
     '9XSRJ+kNQNsRb48eOwrHfd+gWp3zZxKT7/3RNwup3EI='
 );
+
+INSERT INTO event_messages (
+    id, username, merchant_address, invoice_id, status, is_sent
+) VALUES (
+    '001',
+    'user1',
+    '0x1111111111111111111111111111111111111111',
+    'b833631c3fae26d8eec0f0317f770095071dabb50ce4ea8e7ccafdd976ba187f',
+    'DETECTED',
+    FALSE
+);
+
+INSERT INTO event_messages (
+    id, username, merchant_address, invoice_id, status, is_sent
+) VALUES (
+    '002',
+    'user2',
+    '0x1111111111111111111111111111111111111111',
+    'f933631c3fae26d8eec0f0317f770095071dabb50ce4ea8e7ccafdd976ba187f',
+    'CONFIRMED',
+    FALSE
+);
+
+INSERT INTO event_messages (
+    id, username, merchant_address, invoice_id, status, is_sent
+) VALUES (
+    '003',
+    'user1',
+    '0x1111111111111111111111111111111111111111',
+    'b933631c3fae26d8eec0f0317f770095071dabb50ce4ea8e7ccafdd976ba187f',
+    'REORG',
+    FALSE
+);
