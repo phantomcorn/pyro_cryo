@@ -50,8 +50,7 @@ public class WebhooksIntegrationTest {
 
     @BeforeEach
     public void fetchEvents() {
-        List<EventMessage> needSend = eventMessageService.findAll();
-        eventMessageService.addAll(needSend);
+        eventMessageService.fetchEvents();
     }
 
     @Test

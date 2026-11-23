@@ -4,6 +4,8 @@ import com.example.pyro_cryo.utils.webhooks.entity.EventMessage;
 import com.example.pyro_cryo.utils.webhooks.repository.EventMessageRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -16,8 +18,10 @@ public class EventMessageService {
 
     BlockingQueue<EventMessage> eventOutbox = new LinkedBlockingQueue<>();
 
-    public List<EventMessage> findAll() {
-        return eventMessageRepository.findByIsSent(false);
+    @Transactional
+    public void fetchEvents() {
+        List<EventMessage> needSend = eventMessageRepository.findByIsSent(false);
+        addAll(needSend);
     }
 
     public void addAll(List<EventMessage> eventMessages) {
