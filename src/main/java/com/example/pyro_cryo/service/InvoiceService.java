@@ -12,7 +12,6 @@ import com.example.pyro_cryo.utils.webhooks.repository.EventMessageRepository;
 import com.example.pyro_cryo.utils.webhooks.entity.EventMessage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.web3j.crypto.Credentials;
@@ -85,7 +84,6 @@ public class InvoiceService {
         return Optional.of(found.get().toDto());
     }
 
-    @Scheduled(fixedDelay = 30000)
     @Transactional
     public boolean expireInvoice() {
         List<Invoice> lockedInvoices = invoiceRepository.lockByExpirationAndNotPaid(BigInteger.valueOf(clock.millis() * 1000), Status.NOT_PAID);
