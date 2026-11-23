@@ -18,6 +18,9 @@ spring:
       org:
         springframework:
           security=DEBUG:
+app:
+  scheduling:
+    enabled: false
 rpc:
   endpoint-url: "https://eth-sepolia.g.alchemy.com/v2/alch_dC-N1oQkucc4aRmNyBCf9"
 sepolia:
