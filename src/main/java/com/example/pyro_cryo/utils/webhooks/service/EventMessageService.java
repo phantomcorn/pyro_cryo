@@ -41,4 +41,8 @@ public class EventMessageService {
         return eventOutbox.isEmpty();
     }
 
+    public int size() {
+        return eventOutbox.size();
+    }
+
 }
