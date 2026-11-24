@@ -30,14 +30,16 @@ Crypto payment gateway using Spring Boot API and Web3j watcher
 - [x] You mark your invoice as CONFIRMED and calls send webhooks. Just as you are about to send your server crashes -> user doesn't recieve confirmation but your system says invoice is confirmed. (Dual-write problem)
   - [x] When updating status to your invoice also write to outbox database
   - [x] Read from outbox database into queue.
+  - [ ] Should not read same row twice
   - [x] Worker processed message from the queue.
   - [x] Once finished, mark entry as processed (Mark before or after? After. Prefer duplicate webhooks mitigate with idempotency over silent loss)
 - [ ] Decision: Single background job to read outbox db and store in in-memory queue or multiple?
   - [ ] Single. Multiple adds unnecessary complexity. 
   - [ ] Single may retrieve billions and queue overflows and crash. Set limit on how much is retrieved at a time.
   - [ ] Active-passive failover
-    - [ ] A network blip promote passive to active but previous active is still alive. Now there's 2 active
-        - [ ] Introducing a manager introduces a single point of failure
+    - [x] A network blip promote passive to active but previous active is still alive. Now there's 2 active
+        - [x] Introducing a manager introduces a single point of failure
+    - [ ] Lease mechanism. Leader renew lease by updating timestamp via condition write. Non-leader check periodically, attempt to acquire lease only when expire.
 - [ ] Buyer clicks pay 1 second before expiry, contract `block.timestamp` shows expired. Transaction reverts + gas fee paid
   - [ ] Add grace period in contract
     - [ ] `order.expired` webhook but function still accepts payment within grace period
@@ -47,6 +49,7 @@ Crypto payment gateway using Spring Boot API and Web3j watcher
   - [ ] Checkpoint every processed block
   - [ ] Resume from checkpoint
 - [ ] **Merchant** server crash beyond webhook retries. Webhook fails
+  - [ ] Webhook retries exhausted, get stored in dead-letter queue
   - [ ] On restart, merchant pull all updates from time of crash
 
 ## Features
