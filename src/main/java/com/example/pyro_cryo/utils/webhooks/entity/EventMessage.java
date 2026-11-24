@@ -7,6 +7,8 @@ import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import java.util.Objects;
+
 
 @Entity
 @Builder
@@ -49,5 +51,25 @@ public class EventMessage {
             case EXPIRED -> res = InvoiceEventStatus.EXPIRED;
         }
         return res;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+
+        if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        }
+
+        EventMessage otherMessage = (EventMessage) obj;
+
+        return id.equals(otherMessage.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
     }
 }
