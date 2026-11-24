@@ -48,33 +48,32 @@ public class WebhooksIntegrationTest {
     @Autowired
     EventMessageService outbox;
 
-    String merchantAddress = "0x1111111111111111111111111111111111111111";
-    String merchantUsername = "user1";
+    List<EventMessage> eventMessages = List.of(
+            EventMessage.builder()
+                    .username("user1")
+                    .merchantAddress("0x1111111111111111111111111111111111111111")
+                    .invoiceId("b833631c3fae26d8eec0f0317f770095071dabb50ce4ea8e7ccafdd976ba187f")
+                    .status(Status.DETECTED)
+                    .isSent(false).build(),
+
+            EventMessage.builder()
+                    .username("user1")
+                    .merchantAddress("0x1111111111111111111111111111111111111111")
+                    .invoiceId("f933631c3fae26d8eec0f0317f770095071dabb50ce4ea8e7ccafdd976ba187f")
+                    .status(Status.CONFIRMED)
+                    .isSent(false).build(),
+
+            EventMessage.builder()
+                    .username("user1")
+                    .merchantAddress("0x1111111111111111111111111111111111111111")
+                    .invoiceId("b933631c3fae26d8eec0f0317f770095071dabb50ce4ea8e7ccafdd976ba187f")
+                    .status(Status.REORG)
+                    .isSent(false).build()
+    );
 
     @BeforeEach
     public void insertAndFetchEvents() {
-        EventMessage eventMessage = EventMessage.builder()
-                .username("user1")
-                .merchantAddress("0x1111111111111111111111111111111111111111")
-                .invoiceId("b833631c3fae26d8eec0f0317f770095071dabb50ce4ea8e7ccafdd976ba187f")
-                .status(Status.DETECTED)
-                .isSent(false).build();
-
-        EventMessage eventMessage1 = EventMessage.builder()
-                .username("user1")
-                .merchantAddress("0x1111111111111111111111111111111111111111")
-                .invoiceId("f933631c3fae26d8eec0f0317f770095071dabb50ce4ea8e7ccafdd976ba187f")
-                .status(Status.CONFIRMED)
-                .isSent(false).build();
-
-        EventMessage eventMessage2 = EventMessage.builder()
-                .username("user1")
-                .merchantAddress("0x1111111111111111111111111111111111111111")
-                .invoiceId("b933631c3fae26d8eec0f0317f770095071dabb50ce4ea8e7ccafdd976ba187f")
-                .status(Status.REORG)
-                .isSent(false).build();
-
-        eventMessageRepository.saveAll(List.of(eventMessage, eventMessage1, eventMessage2));
+        eventMessageRepository.saveAll(eventMessages);
         eventMessageService.fetchEvents();
     }
 
@@ -98,7 +97,9 @@ public class WebhooksIntegrationTest {
                 .thenReturn(CompletableFuture.completedFuture(response));
 
         ExecutorService executorService = Executors.newFixedThreadPool(n);
-        executorService.submit(new EventMessageWorker(eventMessageService, merchantService, httpClient));
+        for (int i = 0; i < n; i++) {
+            executorService.submit(new EventMessageWorker(eventMessageService, merchantService, httpClient));
+        }
         return executorService;
     }
 
@@ -108,7 +109,7 @@ public class WebhooksIntegrationTest {
     }
 
     @Test
-    public void singleWorkerStandbyWheneverOutboxEmpty() throws InterruptedException, ExecutionException, TimeoutException {
+    public void singleWorkerStandbyWheneverOutboxEmpty() throws InterruptedException {
         CountDownLatch latch = new CountDownLatch(outbox.size());
         doAnswer(inv -> {
             inv.callRealMethod();
@@ -123,7 +124,7 @@ public class WebhooksIntegrationTest {
     }
 
     @Test
-    public void singleWorkerCanProcessOutbox() throws InterruptedException, ExecutionException, TimeoutException {
+    public void singleWorkerCanProcessOutbox() throws InterruptedException {
         CountDownLatch latch = new CountDownLatch(outbox.size());
         doAnswer(inv -> {
             inv.callRealMethod();
@@ -135,100 +136,31 @@ public class WebhooksIntegrationTest {
         stop(executorService);
     }
 
-//    @Test
-//    public void dispatcherCanSeeMessageInbox() {
-//        EventMessage message = EventMessage
-//                .builder()
-//                .username("user1")
-//                .merchantAddress("0x1111111111111111111111111111111111111111")
-//                .invoiceId(Hash.sha3String(UUID.randomUUID().toString()))
-//                .status(Status.DETECTED)
-//                .build();
-//
-//        inbox.getPublisher().onNext(message);
-//        Mockito.verify(merchantService).findMerchantByUsername(message.getUsername());
-//    }
-//
-//    @Test
-//    public void dispatcherHandlerSendsRequest() throws ExecutionException, InterruptedException {
-//        EventMessage message = EventMessage
-//                .builder()
-//                .username(merchantUsername)
-//                .merchantAddress(merchantAddress)
-//                .invoiceId(Hash.sha3String(UUID.randomUUID().toString()))
-//                .status(Status.DETECTED)
-//                .build();
-//
-//        MerchantDto merchantDto = merchantService.findMerchantByUsername(merchantUsername).get();
-//
-//        inbox.getPublisher().onNext(message);
-//        Mockito.verify(sender).send(
-//                message.getInvoiceId(),
-//                EventMessage.statusToInvoiceEventStatus(message.getStatus()),
-//                merchantDto
-//        );
-//    }
-//
-//    @Test
-//    public void NewInvoiceDoesNotTriggerWebhook() throws ExecutionException, InterruptedException {
-//        EventMessage message = EventMessage
-//                .builder()
-//                .username(merchantUsername)
-//                .merchantAddress(merchantAddress)
-//                .invoiceId(Hash.sha3String(UUID.randomUUID().toString()))
-//                .status(Status.NOT_PAID)
-//                .build();
-//
-//        MerchantDto merchantDto = merchantService.findMerchantByUsername(merchantUsername).get();
-//
-//        inbox.getPublisher().onNext(message);
-//        Mockito.verify(sender, Mockito.never()).send(
-//                message.getInvoiceId(),
-//                EventMessage.statusToInvoiceEventStatus(message.getStatus()),
-//                merchantDto
-//        );
-//    }
-//
-//    @Test
-//    @DirtiesContext
-//    public void failedWebhookWillRetry3Times() throws ExecutionException, InterruptedException {
-//        EventMessage message = EventMessage
-//                .builder()
-//                .username(merchantUsername)
-//                .merchantAddress(merchantAddress)
-//                .invoiceId(Hash.sha3String(UUID.randomUUID().toString()))
-//                .status(Status.DETECTED)
-//                .build();
-//
-//        MerchantDto merchantDto = merchantService.findMerchantByUsername(merchantUsername).get();
-//        ReflectionTestUtils.setField(sender, "httpClient", httpClient);
-//
-//        Mockito.when(httpResponse.statusCode()).thenReturn(429);
-//        Mockito.when(httpClient.sendAsync(any(HttpRequest.class), any(HttpResponse.BodyHandler.class))).thenReturn(CompletableFuture.completedFuture(httpResponse));
-//        inbox.getPublisher().onNext(message);
-//        Mockito.verify(sender, Mockito.timeout(4000).times(3)).send(
-//                message.getInvoiceId(),
-//                EventMessage.statusToInvoiceEventStatus(message.getStatus()),
-//                merchantDto
-//        );
-//    }
-//
-//    @Test
-//    @DirtiesContext
-//    public void afterRetryingFailedWebhookTriggerFallback() {
-//        EventMessage message = EventMessage
-//                .builder()
-//                .username(merchantUsername)
-//                .merchantAddress(merchantAddress)
-//                .invoiceId(Hash.sha3String(UUID.randomUUID().toString()))
-//                .status(Status.DETECTED)
-//                .build();
-//
-//        ReflectionTestUtils.setField(sender, "httpClient", httpClient);
-//
-//        Mockito.when(httpResponse.statusCode()).thenReturn(429);
-//        Mockito.when(httpClient.sendAsync(any(HttpRequest.class), any(HttpResponse.BodyHandler.class))).thenReturn(CompletableFuture.completedFuture(httpResponse));
-//        inbox.getPublisher().onNext(message);
-//        Mockito.verify(sender).failedWebhooksFallback(any(RetryableWebhookException.class), eq(message));
-//    }
+
+    @Test
+    public void multiWorkerCanProcessOutbox() throws InterruptedException, ExecutionException, TimeoutException {
+        int workerCount = 3;
+
+        CountDownLatch latch = new CountDownLatch(workerCount);
+        doAnswer(inv -> {
+            inv.callRealMethod();
+            latch.countDown();
+            return null;
+        }).doNothing().when(eventMessageService).markAsProcessed(eventMessages.get(0));
+        doAnswer(inv -> {
+            inv.callRealMethod();
+            latch.countDown();
+            return null;
+        }).doNothing().when(eventMessageService).markAsProcessed(eventMessages.get(1));
+        doAnswer(inv -> {
+            inv.callRealMethod();
+            latch.countDown();
+            return null;
+        }).doNothing().when(eventMessageService).markAsProcessed(eventMessages.get(2));
+        ExecutorService executorService = spawnWorker(outbox.size());
+        Assertions.assertTrue(latch.await(5, TimeUnit.SECONDS));
+        stop(executorService);
+        verify(eventMessageService, times(workerCount)).markAsProcessed(any());
+    }
+
 }
