@@ -14,7 +14,7 @@ import java.util.Optional;
 @Service
 public class InvoicePaymentService {
 
-    private final Integer BLOCKS_TO_FINALITY = 12;
+    private final Integer BLOCKS_TO_FINALITY = 14; //double of ethereum largest reorg 7 (May 25, 2022)
 
     @Autowired
     InvoicePaymentRepository invoicePaymentRepository;
