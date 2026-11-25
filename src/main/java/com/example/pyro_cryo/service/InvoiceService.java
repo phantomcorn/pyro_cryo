@@ -8,11 +8,10 @@ import com.example.pyro_cryo.repository.InvoiceRepository;
 import com.example.pyro_cryo.dto.response.PayResponse;
 import com.example.pyro_cryo.utils.dto.NewSignatureDto;
 import com.example.pyro_cryo.utils.Web3jClient;
-import com.example.pyro_cryo.utils.webhooks.EventInbox;
-import com.example.pyro_cryo.utils.webhooks.EventMessage;
+import com.example.pyro_cryo.utils.webhooks.repository.EventMessageRepository;
+import com.example.pyro_cryo.utils.webhooks.entity.EventMessage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.web3j.crypto.Credentials;
@@ -39,7 +38,7 @@ public class InvoiceService {
     Credentials credentials;
 
     @Autowired
-    EventInbox inbox;
+    EventMessageRepository eventMessageRepository;
 
     @Autowired
     Clock clock;
@@ -85,10 +84,9 @@ public class InvoiceService {
         return Optional.of(found.get().toDto());
     }
 
-    @Scheduled(fixedDelay = 30000)
     @Transactional
     public boolean expireInvoice() {
-        List<Invoice> lockedInvoices = invoiceRepository.lockByExpirationAndNotPaid(BigInteger.valueOf(clock.millis()), Status.NOT_PAID);
+        List<Invoice> lockedInvoices = invoiceRepository.lockByExpirationAndNotPaid(BigInteger.valueOf(clock.millis() * 1000), Status.NOT_PAID);
         if (lockedInvoices.isEmpty()) {
             return false;
         }
@@ -97,9 +95,10 @@ public class InvoiceService {
         int changes = invoiceRepository.transition(lockedIds, Status.NOT_PAID, Status.EXPIRED);
 
         assert(changes == lockedInvoices.size());
-        lockedInvoices.forEach(invoice ->
-                inbox.getPublisher().onNext(message(invoice, Status.EXPIRED))
-        );
+        eventMessageRepository.saveAll(
+                lockedInvoices.stream().map(invoice -> message(invoice, Status.EXPIRED)
+        ).toList());
+
         return true;
     }
 
@@ -119,9 +118,10 @@ public class InvoiceService {
         int changes = invoiceRepository.transition(lockedIds, Status.NOT_PAID, Status.DETECTED);
 
         assert(changes == lockedInvoices.size());
-        lockedInvoices.forEach(invoice ->
-                inbox.getPublisher().onNext(message(invoice, Status.DETECTED))
-        );
+
+        eventMessageRepository.saveAll(
+                lockedInvoices.stream().map(invoice -> message(invoice, Status.DETECTED)
+        ).toList());
         return true;
     }
 
@@ -136,8 +136,9 @@ public class InvoiceService {
         int changes = invoiceRepository.transition(lockedIds, Status.DETECTED, Status.CONFIRMED);
 
         assert(changes == lockedIds.size());
-        lockedInvoices.forEach(invoice ->
-                inbox.getPublisher().onNext(message(invoice, Status.CONFIRMED))
+
+        eventMessageRepository.saveAll(
+                lockedInvoices.stream().map(invoice -> message(invoice, Status.CONFIRMED)).toList()
         );
         return true;
     }
@@ -158,13 +159,13 @@ public class InvoiceService {
         int changes = invoiceRepository.transition(lockedIds, Status.DETECTED, Status.REORG);
 
         assert(changes == lockedInvoices.size());
-        lockedInvoices.forEach(invoice ->
-                inbox.getPublisher().onNext(message(invoice, Status.REORG))
-        );
+        eventMessageRepository.saveAll(
+                lockedInvoices.stream().map(invoice -> message(invoice, Status.REORG)
+        ).toList());
         return true;
     }
 
-    private EventMessage message(Invoice invoice, Status status) {
+    public static EventMessage message(Invoice invoice, Status status) {
         return EventMessage.builder()
                 .invoiceId(invoice.getHashId())
                 .merchantAddress(invoice.getMerchantAddress())
