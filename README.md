@@ -30,7 +30,6 @@ Crypto payment gateway using Spring Boot API and Web3j watcher
 - [x] You mark your invoice as CONFIRMED and calls send webhooks. Just as you are about to send your server crashes -> user doesn't recieve confirmation but your system says invoice is confirmed. (Dual-write problem)
   - [x] When updating status to your invoice also write to outbox database
   - [x] Read from outbox database into queue.
-  - [ ] Should not read same row twice
   - [x] Worker processed message from the queue.
   - [x] Once finished, mark entry as processed (Mark before or after? After. Prefer duplicate webhooks mitigate with idempotency over silent loss)
 - [ ] Decision: Single background job to read outbox db and store in in-memory queue or multiple?
