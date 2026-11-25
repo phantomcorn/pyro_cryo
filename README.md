@@ -1,4 +1,4 @@
-# Pyro Cryo
+# Pyro Cryo (Grilled by Claude)
 Crypto payment gateway using Spring Boot API and Web3j watcher
 
 ## TODO
