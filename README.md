@@ -33,7 +33,7 @@ Crypto payment gateway using Spring Boot API and Web3j watcher
   - [x] Worker processed message from the queue.
   - [x] Once finished, mark entry as processed (Mark before or after? After. Prefer duplicate webhooks mitigate with idempotency over silent loss)
 - [ ] Decision: Single background job to read outbox db and store in in-memory queue or multiple?
-  - [ ] Single. Multiple adds unnecessary complexity. 
+  - [x] Single. Multiple adds unnecessary complexity. 
   - [ ] Single may retrieve billions and queue overflows and crash. Set limit on how much is retrieved at a time.
   - [ ] Active-passive failover
     - [x] A network blip promote passive to active but previous active is still alive. Now there's 2 active
