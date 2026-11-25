@@ -67,7 +67,7 @@ public class InvoicePaymentServiceIntegrationTests {
         }
 
         int currentBlock = BLOCK_NUM[BLOCK_NUM.length - 1]; //18
-        int[] blockWithAtLeastTwelveAhead = Arrays.stream(BLOCK_NUM).filter(i -> currentBlock - i >= 12).toArray();
+        int[] blockWithAtLeastTwelveAhead = Arrays.stream(BLOCK_NUM).filter(i -> currentBlock - i >= 14).toArray();
 
         List<InvoicePaymentDto>  canFinalizePayment = invoicePaymentService.canFinalize(BigInteger.valueOf(currentBlock));
 
